@@ -1,0 +1,16 @@
+.DS_Store
+/.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+**.xcodeproj
+Examples/GodotProject/.godot
+Examples/GodotProject/*.import
+.vscode/
+Examples/Sources/PlaygroundView.swift
+docs/
+**/.godot/
+**.uid
