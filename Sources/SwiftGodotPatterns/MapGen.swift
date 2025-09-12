@@ -1,3 +1,5 @@
+import Foundation
+
 /// Axis-aligned integer rectangle in tile/grid coordinates.
 /// The origin (`x`,`y`) is the top-left corner; width/height are in tiles.
 public struct Rect {
@@ -29,17 +31,17 @@ public enum MapGen {
   ///   - w: Map width in tiles. Also the outer bound for `tiles[x][y]` indexing.
   ///   - h: Map height in tiles.
   ///   - rooms: Inclusive range for the target number of rooms to attempt.
-  ///   - rng: Pseudorandom source used for room sizes/positions and carving; passed `inout` to preserve sequence.
   /// - Returns: `(tiles, rooms)` where `tiles` is indexed `[x][y]` and `rooms` are the carved `Rect`s.
-  /// - Note: The actual room count is drawn with `SystemRandomNumberGenerator()`; geometry uses `rng`.
-  public static func dungeon(w: Int, h: Int, rooms: ClosedRange<Int>, rng: inout Rng) -> ([[Tile]], [Rect]) {
-    var tiles = Array(repeating: Array(repeating: Tile.wall, count: h), count: w)
+  public static func dungeon(w: Int, h: Int, rooms: ClosedRange<Int>) -> ([[Tile]], [Rect]) {
+    var tiles = Array(repeating: Array(repeating: Tile.wall, count: Int(h)), count: Int(w))
     var rs: [Rect] = []
-    let count = Int.random(in: rooms, using: &SystemRandomNumberGenerator())
+    let count = Int.random(in: rooms)
+    var rng = SystemRandomNumberGenerator()
 
     for _ in 0 ..< count {
-      let rw = 4 + rng.uniform(8), rh = 4 + rng.uniform(8)
-      let rx = max(1, rng.uniform(w - rw - 1)), ry = max(1, rng.uniform(h - rh - 1))
+      // update to use foundation rng
+      let rw = 4 + Int.random(in: 0 ... 8, using: &rng), rh = 4 + Int.random(in: 0 ... 8, using: &rng)
+      let rx = max(1, Int.random(in: 1 ... (w - rw - 1), using: &rng)), ry = max(1, Int.random(in: 1 ... (h - rh - 1), using: &rng))
       let r = Rect(x: rx, y: ry, w: rw, h: rh)
 
       if rs.contains(where: { overlap($0, r, pad: 1) }) { continue }
