@@ -29,8 +29,6 @@ import SwiftGodot
 ///                       options: .init(trimming: .applyPivotOrCenter),
 ///                       autoplay: "Walk")
 ///
-/// // Using builder
-/// let player = GNode<AseSprite>("Player", path: "player.json", autoplay: "Idle")
 /// ```
 @Godot
 public final class AseSprite: AnimatedSprite2D {
