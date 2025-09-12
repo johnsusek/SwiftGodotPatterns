@@ -4,7 +4,7 @@ Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftG
 
 ## 📕 API Documentation
 
-- [SwiftGodotPatterns](https://johnsusek.github.io/SwiftGodotPatterns/documentation/swiftgodotpatterns/)
+- [SwiftGodotPatterns](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns)
 
 ## 💁 Class Registry
 
