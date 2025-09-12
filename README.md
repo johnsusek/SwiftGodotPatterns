@@ -1,10 +1,10 @@
-# SwiftGodotBuilder
+# SwiftGodotPatterns
 
-Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot). Companion library to [SwiftGodotBuilder](https://github.com/johnsusek/SwiftGodotBuilder)
+Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot), companion to [SwiftGodotBuilder](https://github.com/johnsusek/SwiftGodotBuilder).
 
 ## 📕 API Documentation
 
-- [SwiftGodotPatterns](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns)
+- [SwiftGodotPatterns](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/main/documentation/swiftgodotpatterns)
 
 ## 💁 Class Registry
 
