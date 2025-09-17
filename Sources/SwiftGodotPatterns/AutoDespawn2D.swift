@@ -137,8 +137,20 @@ public final class AutoDespawn2D: Node {
     done = true
     onDespawn?()
 
-    guard let h = host else { queueFree(); return }
-    if let releaseToPool { releaseToPool(h) } else { h.queueFree() }
+    guard let host else {
+      queueFree()
+      return
+    }
+
+    let parent = host.getParent()
+    parent?.removeChild(node: host)
+
+    if let releaseToPool {
+      releaseToPool(host)
+    } else {
+      host.queueFree()
+    }
+
     queueFree()
   }
 }
