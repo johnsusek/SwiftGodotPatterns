@@ -8,90 +8,60 @@ public enum FovTile { case open, wall }
 /// Visibility is computed in eight octants around `origin` up to `radius` cells,
 /// stopping at walls (opaque tiles). The origin is always visible.
 public enum Fov {
-  /// Computes visible cells from `origin`.
-  ///
-  /// - Parameters:
-  ///   - map: Returns `.wall` for opaque cells, `.open` otherwise.
-  ///   - grid: Grid bounds for clipping.
-  ///   - origin: Source cell (always included).
-  ///   - radius: Maximum range in cells (Euclidean squared check).
-  /// - Returns: A set of visible cell positions.
-  /// - Note: This implementation minimizes floating-point math and clips to `grid`.
-  public static func compute(map: (GridPos) -> FovTile,
-                             grid: Grid,
-                             origin: GridPos,
-                             radius: Int) -> Set<GridPos>
-  {
-    var visible: Set<GridPos> = [origin]
-
-    func blocked(_ p: GridPos) -> Bool { map(p) == .wall }
-
-    // 8 octants
+  public static func compute(map: (GridPos) -> FovTile, grid: Grid, origin: GridPos, radius: Int) -> Set<GridPos> {
+    var out: Set<GridPos> = [origin]
     for oct in 0 ..< 8 {
-      shadowcast(oct: oct, origin: origin, radius: radius, grid: grid, blocked: blocked, out: &visible)
+      scan(oct, origin, radius, 1, 1.0, 0.0, map, grid, &out)
     }
-
-    return visible
+    return out
   }
 
-  // Shadowcasting adapted to integer grid; keeps floats minimal.
-  private static func shadowcast(oct: Int, origin: GridPos, radius: Int, grid: Grid,
-                                 blocked: (GridPos) -> Bool, out: inout Set<GridPos>)
+  private static func scan(_ oct: Int, _ o: GridPos, _ r: Int, _ row: Int, _ start: Double, _ end: Double,
+                           _ map: (GridPos) -> FovTile, _ grid: Grid, _ out: inout Set<GridPos>)
   {
-    var row = 1
-    var startSlope = -1.0
-    let endSlope = 1.0
+    if start < end || row > r { return }
+    var nextStart = start
+    var blocked = false
+    let y = row
+    var x = Int(floor(Double(y) * nextStart + 0.5))
+    let xEnd = Int(floor(Double(y) * end + 0.5))
+    while x >= xEnd {
+      let (dx, dy) = (x, y)
+      let (cx, cy) = tf(oct, dx, dy)
+      let p = GridPos(x: o.x + cx, y: o.y + cy)
+      let lSlope = (Double(x) - 0.5) / (Double(y) + 0.5)
+      let rSlope = (Double(x) + 0.5) / (Double(y) - 0.5)
 
-    while row <= radius {
-      var prevBlocked = false
-      var nextStartSlope = startSlope
-      let dxMin = Int(round(Double(row) * startSlope))
-      let dxMax = Int(round(Double(row) * endSlope))
-
-      for dx in dxMin ... dxMax {
-        let dy = row
-        let (cx, cy) = transform(oct, dx, dy)
-        let p = GridPos(x: origin.x + cx, y: origin.y + cy)
-
-        if !grid.inside(p) { continue }
-
-        let dist2 = dx * dx + dy * dy
-
-        if dist2 <= radius * radius { out.insert(p) }
-
-        let tileBlocked = blocked(p)
-
-        if tileBlocked {
-          if !prevBlocked { nextStartSlope = slope(dx - 1, dy, dx, dy) }
-          prevBlocked = true
-        } else {
-          if prevBlocked {
-            shadowcast(oct: oct, origin: origin, radius: radius, grid: grid, blocked: blocked, out: &out)
-            startSlope = nextStartSlope
-            nextStartSlope = slope(dx, dy, dx + 1, dy)
+      if grid.inside(p) {
+        if dx * dx + dy * dy <= r * r { out.insert(p) }
+        if blocked {
+          if map(p) == .wall { nextStart = rSlope } else {
+            blocked = false
+            scan(oct, o, r, row + 1, nextStart, lSlope, map, grid, &out)
           }
-          prevBlocked = false
+        } else {
+          if map(p) == .wall {
+            blocked = true
+            scan(oct, o, r, row + 1, nextStart, lSlope, map, grid, &out)
+            nextStart = rSlope
+          }
         }
       }
-
-      if prevBlocked { startSlope = nextStartSlope }
-
-      row += 1
+      x -= 1
     }
+    if !blocked { scan(oct, o, r, row + 1, nextStart, end, map, grid, &out) }
+  }
 
-    func slope(_ x1: Int, _ y1: Int, _ x2: Int, _ y2: Int) -> Double { Double(x1 + x2) / Double(y1 + y2 + (y1 == -y2 ? 1 : 0)) }
-
-    func transform(_ o: Int, _ x: Int, _ y: Int) -> (Int, Int) {
-      switch o {
-      case 0: return (x, y)
-      case 1: return (y, x)
-      case 2: return (-y, x)
-      case 3: return (-x, y)
-      case 4: return (-x, -y)
-      case 5: return (-y, -x)
-      case 6: return (y, -x)
-      default: return (x, -y)
-      }
+  @inline(__always) private static func tf(_ o: Int, _ x: Int, _ y: Int) -> (Int, Int) {
+    switch o {
+    case 0: return (x, y)
+    case 1: return (y, x)
+    case 2: return (-y, x)
+    case 3: return (-x, y)
+    case 4: return (-x, -y)
+    case 5: return (-y, -x)
+    case 6: return (y, -x)
+    default: return (x, -y)
     }
   }
 }
