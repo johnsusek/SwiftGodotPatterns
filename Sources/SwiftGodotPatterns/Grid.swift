@@ -1,8 +1,10 @@
 import Foundation
 import SwiftGodot
 
+public enum CardinalDirection: String, Codable, CaseIterable { case north, south, east, west }
+
 /// A rectangular grid's width/height in cells.
-public struct GridSize {
+public struct GridSize: Codable {
   public let w: Int
   public let h: Int
 
@@ -17,10 +19,22 @@ public struct GridPos: Codable, Hashable {
   public init(x: Int, y: Int) { self.x = x; self.y = y }
 }
 
+public extension GridPos {
+  func toVector2i() -> Vector2i { Vector2i(x: Int32(x), y: Int32(y)) }
+
+  func direction(to p: GridPos) -> CardinalDirection? {
+    if p.x == x, p.y == y - 1 { return .north }
+    if p.x == x, p.y == y + 1 { return .south }
+    if p.x == x - 1, p.y == y { return .west }
+    if p.x == x + 1, p.y == y { return .east }
+    return nil
+  }
+}
+
 /// Utility for integer tile grids: bounds checks, neighborhood queries, and tile/world transforms.
 ///
 /// Coordinates are zero-based. `x` grows rightward `y` grows downward.
-public protocol Grid {
+public protocol Grid: Codable {
   /// Grid dimensions in cells.
   var size: GridSize { get }
 
@@ -35,6 +49,16 @@ public extension Grid {
   /// - Returns: `true` if `0 ≤ p.x < w` and `0 ≤ p.y < h`.
   /// - Complexity: O(1).
   func inside(_ p: GridPos) -> Bool { p.x >= 0 && p.y >= 0 && p.x < size.w && p.y < size.h }
+
+  // Returns the neighbor in the given direction, or nil if out of bounds.
+  func neighbor(in dir: CardinalDirection, from p: GridPos) -> GridPos? {
+    switch dir {
+    case .north: return inside(GridPos(x: p.x, y: p.y - 1)) ? GridPos(x: p.x, y: p.y - 1) : nil
+    case .south: return inside(GridPos(x: p.x, y: p.y + 1)) ? GridPos(x: p.x, y: p.y + 1) : nil
+    case .east: return inside(GridPos(x: p.x + 1, y: p.y)) ? GridPos(x: p.x + 1, y: p.y) : nil
+    case .west: return inside(GridPos(x: p.x - 1, y: p.y)) ? GridPos(x: p.x - 1, y: p.y) : nil
+    }
+  }
 
   /// Returns the 4-connected neighbors (cardinals) inside the grid.
   ///
