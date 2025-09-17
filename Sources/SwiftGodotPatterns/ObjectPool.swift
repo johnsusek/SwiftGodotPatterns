@@ -101,8 +101,14 @@ public final class ObjectPool<T: Object> {
   /// Calls `onRelease()` on `PoolItem` conformers, then appends to the free list.
   ///
   /// - Parameter o: The instance to recycle.
+
   public func release(_ o: T) {
     (o as? PoolItem)?.onRelease()
+
+    if let node = o as? Node, let parent = node.getParent() {
+      parent.removeChild(node: node)
+    }
+
     freeList.append(o)
   }
 
@@ -110,8 +116,17 @@ public final class ObjectPool<T: Object> {
   ///
   /// - Returns: A new instance ready to be pooled, or `nil` if creation failed.
   private func makeOne() -> T? {
-    if let s = scene, let o = s.instantiate() as? T { (o as? PoolItem)?.onRelease(); return o }
-    if let f = factory { let o = f(); (o as? PoolItem)?.onRelease(); return o }
+    if let s = scene, let o = s.instantiate() as? T {
+      (o as? PoolItem)?.onRelease()
+      return o
+    }
+
+    if let f = factory {
+      let o = f()
+      (o as? PoolItem)?.onRelease()
+      return o
+    }
+
     return nil
   }
 }
