@@ -53,7 +53,7 @@ public extension PoolItem {
 ///   pool.release(b)
 /// }
 /// ```
-public final class Pool<T: Object> {
+public final class ObjectPool<T: Object> {
   /// Optional scene used to instantiate pooled instances.
   ///
   /// When non-`nil`, this is the preferred source of new objects.
@@ -132,10 +132,10 @@ public final class Pool<T: Object> {
 /// ```
 public struct PoolScope<T: Object> {
   /// The underlying pool.
-  private let pool: Pool<T>
+  private let pool: ObjectPool<T>
 
   /// Creates a scope for the given pool.
-  public init(_ p: Pool<T>) { pool = p }
+  public init(_ p: ObjectPool<T>) { pool = p }
 
   /// Acquires an object from the pool, invokes the closure, then releases it.
   public func using(_ body: (T) -> Void) {

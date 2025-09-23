@@ -34,9 +34,14 @@ public enum GodotRegistry {
   private static let lock = NSLock()
 
   /// Enqueues a sequence of Godot `Object` subclasses for later registration.
-  ///
-  /// Types already seen are ignored. Safe to call from multiple threads.
   public static func append(contentsOf ts: [Object.Type]) {
+    for t in ts {
+      append(t)
+    }
+  }
+
+  /// Enqueues a sequence of Godot `Object` subclasses for later registration.
+  public static func append(_ ts: [Object.Type]) {
     for t in ts {
       append(t)
     }

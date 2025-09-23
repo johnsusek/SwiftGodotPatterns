@@ -131,7 +131,9 @@ public final class PhaseRunner<Kind: Hashable> {
   /// - Parameter dt: Delta time in seconds. Pass non-negative values.
   /// - Complexity: O(1).
   public func tick(_ dt: Double) {
-    guard case var .running(kind, t, i) = state else { return }
+    guard case let .running(kind, tt, i) = state else { return }
+
+    var t = tt
 
     t += dt
 
