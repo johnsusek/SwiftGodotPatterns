@@ -24,7 +24,10 @@ public struct PhaseSpec<Kind: Hashable> {
   /// - Parameters:
   ///   - kind: Domain-specific label for the phase.
   ///   - duration: Duration in seconds. Negative values are treated as elapsed immediately by the runner.
-  public init(_ kind: Kind, _ duration: Double) { self.kind = kind; self.duration = duration }
+  public init(_ kind: Kind, _ duration: Double) {
+    self.kind = kind
+    self.duration = duration
+  }
 }
 
 /// Executes a deterministic sequence of timed phases, advancing via ``tick(_:)``.
@@ -87,10 +90,16 @@ public final class PhaseRunner<Kind: Hashable> {
   public init() {}
 
   /// Whether the runner is currently executing a sequence.
-  public var busy: Bool { if case .running = state { return true }; return false }
+  public var busy: Bool {
+    if case .running = state { return true }
+    return false
+  }
 
   /// The kind of the current phase, or `nil` when idle.
-  public var current: Kind? { if case let .running(k, _, _) = state { return k }; return nil }
+  public var current: Kind? {
+    if case let .running(k, _, _) = state { return k }
+    return nil
+  }
 
   /// Starts executing a new sequence of phases from the first element.
   ///
@@ -108,7 +117,8 @@ public final class PhaseRunner<Kind: Hashable> {
   /// Cancels the active sequence (if any), firing `onExit` for the current phase, and returns to `idle`.
   public func cancel() {
     if case let .running(k, _, _) = state { onExit?(k) }
-    phases.removeAll(); state = .idle
+    phases.removeAll()
+    state = .idle
   }
 
   /// Advances time and performs phase transitions as needed.
@@ -122,12 +132,27 @@ public final class PhaseRunner<Kind: Hashable> {
   /// - Complexity: O(1).
   public func tick(_ dt: Double) {
     guard case var .running(kind, t, i) = state else { return }
+
     t += dt
+
     let d = phases[i].duration
-    if t < d { state = .running(kind: kind, t: t, index: i); return }
+
+    if t < d {
+      state = .running(kind: kind, t: t, index: i)
+      return
+    }
+
     onExit?(kind)
+
     let next = i + 1
-    if next >= phases.count { state = .idle; phases.removeAll(); onFinish?(); return }
+
+    if next >= phases.count {
+      state = .idle
+      phases.removeAll()
+      onFinish?()
+      return
+    }
+
     let nk = phases[next].kind
     state = .running(kind: nk, t: 0, index: next)
     onEnter?(nk)

@@ -215,7 +215,10 @@ public extension StateMachine {
   @inlinable
   func addChangeObserver(_ observer: @escaping (String, String) -> Void) {
     let prev = onChange
-    onChange = { from, to in prev?(from, to); observer(from, to) }
+    onChange = { from, to in
+      prev?(from, to)
+      observer(from, to)
+    }
   }
 
   /// Appends an additional **typed** change observer.

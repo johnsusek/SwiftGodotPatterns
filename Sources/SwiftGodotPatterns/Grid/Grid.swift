@@ -8,7 +8,10 @@ public struct GridSize: Codable {
   public let w: Int
   public let h: Int
 
-  public init(w: Int, h: Int) { self.w = w; self.h = h }
+  public init(w: Int, h: Int) {
+    self.w = w
+    self.h = h
+  }
 }
 
 /// An integer cell coordinate in a grid (x to the right, y downward).
@@ -16,7 +19,10 @@ public struct GridPos: Codable, Hashable {
   public let x: Int
   public let y: Int
 
-  public init(x: Int, y: Int) { self.x = x; self.y = y }
+  public init(x: Int, y: Int) {
+    self.x = x
+    self.y = y
+  }
 }
 
 public extension GridPos {

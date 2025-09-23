@@ -36,7 +36,10 @@ public extension Node {
 
   var visibleSize: Vector2 { getViewport()?.getVisibleRect().size ?? Vector2(0, 0) }
 
-  var visibleCenter: Vector2 { let s = visibleSize; return Vector2(x: s.x * 0.5, y: s.y * 0.5) }
+  var visibleCenter: Vector2 {
+    let s = visibleSize
+    return Vector2(x: s.x * 0.5, y: s.y * 0.5)
+  }
 
   /// Node lookup by string path; returns nil if not found.
   func getNode(_ path: String) -> Node? { getNode(path: NodePath(path)) }

@@ -108,7 +108,10 @@ public final class AutoDespawn2D: Node {
   /// Starts the off-screen debounce (or despawns immediately if no delay).
   @_documentation(visibility: private)
   private func beginOffscreenCountdown() {
-    if offscreenDelay <= 0 { despawn(); return }
+    if offscreenDelay <= 0 {
+      despawn()
+      return
+    }
     offscreenTimer?.reset()
     offscreenTimer?.onTimeout = { [weak self] in self?.despawn() }
     offscreenTimer?.start()

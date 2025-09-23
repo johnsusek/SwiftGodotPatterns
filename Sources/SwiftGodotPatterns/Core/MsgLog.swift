@@ -3,5 +3,8 @@ public final class MsgLog {
   private(set) var lines: [String] = []
   public var onAppend: ((String) -> Void)?
   private init() {}
-  public func write(_ s: String) { lines.append(s); onAppend?(s) }
+  public func write(_ s: String) {
+    lines.append(s)
+    onAppend?(s)
+  }
 }

@@ -65,7 +65,8 @@ public final class GameTimer {
   /// Resets ``elapsed`` to `0` and sets ``running`` to `true`.
   public func start(_ d: Double? = nil) {
     if let d { duration = d }
-    elapsed = 0; running = true
+    elapsed = 0
+    running = true
   }
 
   /// Stops the timer without invoking ``onTimeout``.
@@ -93,7 +94,10 @@ public final class GameTimer {
     elapsed += delta
     if elapsed < duration { return }
     onTimeout?()
-    if repeats { elapsed -= duration; return }
+    if repeats {
+      elapsed -= duration
+      return
+    }
     running = false
   }
 
@@ -116,6 +120,9 @@ public final class GameTimer {
   public static func schedule(after seconds: Double, _ body: @escaping () -> Void) -> Bool {
     guard seconds >= 0, let tree = Engine.getSceneTree(),
           let t = tree.createTimer(timeSec: seconds) else { return false }
-    _ = t.timeout.connect { body() }; return true
+    _ = t.timeout.connect {
+      body()
+    }
+    return true
   }
 }

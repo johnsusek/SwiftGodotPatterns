@@ -73,14 +73,18 @@ public final class Store<M, I, E> {
   public func push(_ i: I) { intents.append(i) }
 
   /// Enqueues an intent and immediately runs a pump.
-  public func commit(_ i: I) { intents.append(i); pump() }
+  public func commit(_ i: I) {
+    intents.append(i)
+    pump()
+  }
 
   /// Runs one processing cycle:
   /// snapshots intents, clears the queue, invokes middleware and systems,
   /// publishes events individually *and* as a batch, then calls `after` middleware.
   public func pump() {
     if intents.isEmpty, systems.isEmpty { return }
-    let snapshot = intents; intents.removeAll()
+    let snapshot = intents
+    intents.removeAll()
 
     for m in middlewares {
       m.before?(snapshot, model)

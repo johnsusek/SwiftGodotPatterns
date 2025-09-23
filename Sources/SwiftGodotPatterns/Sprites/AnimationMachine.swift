@@ -205,7 +205,8 @@ public final class AnimationMachine {
 
       guard let self else { return }
       guard let plan = self.rules.stateToAnim[new] else {
-        GD.print("⚠️ No animation rule for state:", new); return
+        GD.print("⚠️ No animation rule for state:", new)
+        return
       }
 
       self.currentClip = plan.clip
