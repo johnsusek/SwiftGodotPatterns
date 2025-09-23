@@ -2,7 +2,7 @@
 ///
 /// Conforming types should be lightweight value types or stable reference
 /// types. `id` must be unique within a running `TurnScheduler`.
-public protocol Actor {
+public protocol TurnActor {
   /// Stable identifier used as the scheduler key.
   var id: Int { get }
 
@@ -25,7 +25,7 @@ public struct TurnContext {
   ///
   /// This is a convenience to chain actions within the same tick.
   /// Avoid infinite recursion: use with care.
-  public let act: (Actor) -> Void
+  public let act: (TurnActor) -> Void
 }
 
 /// Discrete-time, energy-based turn scheduler.
@@ -58,7 +58,7 @@ public struct TurnContext {
 public final class TurnScheduler {
   private struct Slot {
     var energy: Int
-    var actor: Actor
+    var actor: TurnActor
   }
 
   private var queue: [Int: Slot] = [:]
@@ -73,7 +73,7 @@ public final class TurnScheduler {
   ///   - a: The actor to enqueue. Its `id` must be unique in this scheduler.
   ///   - startingEnergy: Initial energy (default `0`). If ≥ 100, the actor
   ///     may act on the next `tick()`.
-  public func add(_ a: Actor, startingEnergy: Int = 0) { queue[a.id] = .init(energy: startingEnergy, actor: a) }
+  public func add(_ a: TurnActor, startingEnergy: Int = 0) { queue[a.id] = .init(energy: startingEnergy, actor: a) }
 
   /// Removes an actor by identifier. No-op if the id is not present.
   ///
@@ -99,7 +99,7 @@ public final class TurnScheduler {
 
       // Build a context whose `act` invokes `takeTurn` with the same context.
       var tmpCtx: TurnContext!
-      let act: (Actor) -> Void = { actor in actor.takeTurn(tmpCtx) }
+      let act: (TurnActor) -> Void = { actor in actor.takeTurn(tmpCtx) }
       tmpCtx = TurnContext(now: time, act: act)
       let ctx = tmpCtx!
 
