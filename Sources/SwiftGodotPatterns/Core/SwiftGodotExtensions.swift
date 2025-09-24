@@ -22,6 +22,24 @@ public extension Vector2 {
   @inlinable static func *= <S: BinaryInteger>(lhs: inout Self, rhs: S) { lhs = lhs * rhs }
 }
 
+/// Make Vector2 codable.
+extension Vector2: @retroactive Codable {
+  enum CodingKeys: String, CodingKey { case x, y }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(x, forKey: .x)
+    try container.encode(y, forKey: .y)
+  }
+
+  public init(from decoder: Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+    let x = try container.decode(Float.self, forKey: .x)
+    let y = try container.decode(Float.self, forKey: .y)
+    self.init(x: x, y: y)
+  }
+}
+
 public extension Node {
   /// Typed group lookup; returns [] if no tree or group is empty.
   func nodes<T: Node>(inGroup name: StringName, as _: T.Type = T.self) -> [T] {
