@@ -42,7 +42,7 @@ public struct StoreMiddleware<M, I, E> {
 /// `GameSystem<M, I, E>` API (expected to implement something like `apply(_:inout M:inout [E])`).
 public final class Store<M, I, E> {
   /// The authoritative state mutated by systems during a pump.
-  public private(set) var model: M
+  public var model: M
 
   private var intents: [I] = []
   private var systems: [GameSystem<M, I, E>] = []
@@ -75,6 +75,13 @@ public final class Store<M, I, E> {
   /// Enqueues an intent and immediately runs a pump.
   public func commit(_ i: I) {
     intents.append(i)
+    pump()
+  }
+
+  /// Enqueues multiple intents and immediately runs a pump.
+  public func commitBatch(_ intents: [I]) {
+    if intents.isEmpty { return }
+    intents.forEach { push($0) }
     pump()
   }
 
