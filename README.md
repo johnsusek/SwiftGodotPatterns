@@ -1,29 +1,136 @@
-# SwiftGodotPatterns
+
+<a href="#"><img src="media/patterns.png?raw=true" width="210" align="right" title="Pictured: Ancient Roman seamstress at a loom, holding a shuttle."></a>
+
+### SwiftGodotPatterns
 
 Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot), companion to [SwiftGodotBuilder](https://github.com/johnsusek/SwiftGodotBuilder).
 
-## 📕 API Documentation
+#### 📕 [API Documentation](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns)
 
-- [SwiftGodotPatterns](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/main/documentation/swiftgodotpatterns)
+<br>
+<br>
+<br>
+<br>
+<br>
 
-## 💁 Class Registry
+## Lifecycle
 
-Register custom `@Godot` classes without needing to call `register(type)`
+### 📦 ObjectPool (+ PoolScope)
+
+Pool any `Object` subclass. `PoolScope` does scoped acquire/release.
 
 ```swift
-struct MyClass {
-  init() {
-    GodotRegistry.append(Paddle.self)
+final class Bullet: Node2D, PoolItem {
+  func onAcquire() { visible = true }
+  func onRelease() { visible = false; position = .zero }
+}
+
+let pool = ObjectPool<Bullet>(factory: Bullet.init)
+pool.preload(64)
+
+if let b = pool.acquire() { /* attach & use */ pool.release(b) }
+
+PoolScope(pool).using { b in
+  scene.addChild(node: b)
+  // released automatically at the end of the closure
+}
+```
+
+### 🌱 Spawner
+
+Rate-based generator.
+
+```swift
+let spawner = Spawner<Bullet>()
+spawner.rate = 5
+spawner.jitter = 0.05
+spawner.usePool(pool.acquire) // or spawner.make = Bullet.init
+spawner.onSpawn = { bullet in /* configure & attach */ }
+spawner.reset()
+func _process(delta: Double) { spawner.tick(delta: delta) }
+```
+
+### 🧹 AutoDespawn2D
+
+Time/offscreen-driven despawn. Attach as a child helper.
+
+```swift
+@Godot
+final class Bullet: Node2D {
+  override func _ready() {
+    let d = AutoDespawn2D()
+    d.seconds = 2.0
+    d.offscreen = true
+    addChild(node: d)
+  }
+}
+```
+
+## Architecture
+
+### 📣 EventHub & GlobalEventBuses
+
+Type-safe pub/sub with per-event and batch handlers.
+
+```swift
+enum GameEvent { case spawned, died }
+
+let bus = GlobalEventBuses.hub(GameEvent.self)
+let token = bus.onEach { e in print("event:", e) }
+
+bus.publish(.spawned)
+bus.cancel(token)
+```
+
+### 🧩 Store (model/intent/event + systems)
+
+Tiny ECS/Redux-ish store with middleware and event bus.
+
+```swift
+struct Model { var score = 0 } // Your game state
+enum Intent { case add(Int) } // "What we want to do" (inputs to the Store)
+enum Event { case scoreChanged(Int) } // "What actually happened" (outputs from systems)
+
+let store = Store<Model, Intent, Event>(model: .init())
+
+// Register a system: consumes intents, mutates model, emits events.
+store.register(.init { intents, model, events in
+  for intent in intents {
+    guard case let .add(amount) = intent else { continue }
+    model.score += amount // Mutate state
+    events.append(.scoreChanged(model.score)) // Broadcast what happened
+  }
+})
+
+// Subscribe to events (returns a token you can cancel later).
+let token = store.events.onEach { event in
+  switch event {
+  case let .scoreChanged(newScore):
+    GD.print("scoreChanged ->", newScore) // Update node properties, etc.
   }
 }
 
-// Call just before scene loads
-GodotRegistry.flush()
+// Using the Store
+store.commit(.add(10))
 ```
 
-- `SwiftGodotBuilder` will flush the registry automatically when you call `toNode`
+## Sprites
 
-## 🎞️ Animation Machine
+### 🎨 AseSprite (Aseprite JSON + atlas)
+
+Aseprite importer for `AnimatedSprite2D`.
+
+```swift
+let dino = AseSprite("player.json",
+                     layer: "Body",
+                     options: .init(trimming: .applyPivotOrCenter),
+                     autoplay: "idle")
+// or:
+let s = AseSprite()
+s.loadAse("player", autoplay: "idle")
+```
+
+### 🎞️ Animation Machine
 
 A declarative mapping between **gameplay states** and **animation clips**.
 
@@ -46,146 +153,218 @@ sm.start(in: "Idle")
 sm.transition(to: "Hurt") // plays "damaged", then auto-returns to "Idle"
 ```
 
-## Cooldown
+## Gameplay
 
-A frame-friendly cooldown timer.
+### ⏲️ Cooldown
 
-```swift
-var fireCooldown = Cooldown(duration: 0.25)
-
-// In your code:
-if wantsToFire, fireCooldown.tryUse() {
-  fireBullet()
-}
-
-func _process(delta: Double) {
-  fireCooldown.tick(delta: delta)
-}
-```
-
-## StateMachine
-
-A string-keyed finite state machine with enter/exit/update hooks.
+Frame-friendly cooldown timer.
 
 ```swift
-let sm = StateMachine()
-sm.add("Idle", StateMachine.State(onEnter: { print("Idle") }))
-sm.add("Run",  StateMachine.State(onUpdate: { dt in /* move */ }))
-sm.onChange = { from, to in print("\(from) -> \(to)") }
-
-// In your code:
-sm.start(in: "Idle")
-sm.transition(to: "Run")
-
-func _process(delta: Double) {
-  sm.update(delta: delta)
-}
+var fire = Cooldown(duration: 0.25)
+if wantsToFire, fire.tryUse() { shoot() }
+func _process(delta: Double) { fire.tick(delta: delta) }
 ```
 
-## GameTimer
 
-A manually-driven timer with optional repetition and a timeout callback.
+### ❤️ Health
 
-```swift
-@Godot
-class Blinker: Control {
-  private let blink = GameTimer(duration: 0.4, repeats: true)
-
-  override func _ready() {
-    _ = GameTimer.schedule(after: 1.0) { [weak self] in
-      guard let self, let box: ColorRect = getNode("Box") else { return }
-      box.visible = true
-      blink.start()
-    }
-
-    blink.onTimeout = { [weak self] in
-      guard let self, let box: ColorRect = getNode("Box") else { return }
-      box.visible.toggle()
-    }
-  }
-
-  override func _process(delta: Double) {
-    blink.tick(delta: delta)
-  }
-}
-```
-
-```swift
-struct BlinkerView: GView {
-  init() {
-    GodotRegistry.append(contentsOf: [Blinker.self])
-  }
-
-  var body: some GView {
-    GNode<Blinker> {
-      ColorRect$("Box")
-        .color(Color(r: 0.9, g: 0.2, b: 0.3, a: 1))
-        .customMinimumSize(Vector2(x: 64, y: 64))
-        .visible(false)
-    }
-  }
-}
-```
-
-## Health
-
-A game-agnostic hit-point model.
+Game-agnostic hit points.
 
 ```swift
 var hp = Health(max: 100)
 hp.onChanged = { old, new in print("HP: \(old) -> \(new)") }
 hp.onDied = { print("You died!") }
-
 hp.damage(30)   // HP: 100 -> 70
 hp.heal(10)     // HP: 70 -> 80
 hp.invulnerable = true
 hp.damage(999)  // no change
 hp.invulnerable = false
 hp.damage(200)  // HP: 80 -> 0, prints "You died!", then onDamaged(200)
+
 ```
 
-## ObjectPool
+### 🧪 Effects & Stats
 
-An object pool for Godot `Object` subclasses.
+Lightweight RPG stats with timed effects.
 
 ```swift
-final class Bullet: Node2D, PoolItem {
-  func onAcquire() { visible = true }
-  func onRelease() { visible = false; position = .zero }
+var stats = StatBlock(hp: 20, atk: 3, def: 1)
+
+struct Berserk: Effect {
+  let id = "berserk"
+  var remaining = 3
+
+  func modify(_ s: inout StatBlock) {
+    s.atk += 5
+  }
 }
 
-let pool = ObjectPool<Bullet>(factory: { Bullet() })
-pool.preload(64)
-
-if let bullet = pool.acquire() {
-  bullet.onAcquire()
-  // configure and add to scene...
-  // later:
-  pool.release(bullet)
-}
+let bag = EffectBag()
+bag.add(Berserk())
+bag.apply(to: &stats) // stats.atk == 8
+bag.tick() // remaining -> 2
 ```
 
-## Spawner
+### 🗡️ Phases (startup/active/recovery)
 
-A timer-driven generator of objects at a target rate.
+Timeboxed phase runner.
 
 ```swift
-let spawner = Spawner<Bullet>()
-spawner.rate = 5            // 5 bullets/sec
-spawner.jitter = 0.05       // small timing variance
-spawner.make = { Bullet() } // or spawner.usePool(pool.acquire)
+let phases: [PhaseSpec<StandardPhase>] = [.startup(0.2), .active(0.6), .recovery(0.3)]
+let runner = PhaseRunner<StandardPhase>()
 
-spawner.onSpawn = { bullet in
-  bullet.configureAndAttach()
+runner.onEnter = { if $0 == .active { attack() } }
+runner.begin(phases)
+
+func _process(delta: Double) { runner.tick(delta) }
+```
+
+### 🕒 TurnScheduler (ATB-style)
+
+Speed-based turn order.
+
+```swift
+struct Goblin: TurnActor {
+  let id: Int
+  let speed: Int
+  func takeTurn(_ c: TurnContext) { /* act using c.act(self) if needed */ }
 }
 
-spawner.reset() // spawn on next tick
+let ts = TurnScheduler()
+ts.add(Goblin(id: 1, speed: 120))
+ts.add(Goblin(id: 2, speed: 80))
 
-func _process(delta: Double) {
-  spawner.tick(delta: delta)
+func _process(delta: Double) { ts.tick() } // call every frame/tick
+```
+
+### 🔁 StateMachine
+
+String-keyed finite state machine with enter/exit/update hooks.
+
+```swift
+let sm = StateMachine()
+sm.add("Idle", .init(onEnter: { print("Idle") }))
+sm.add("Run",  .init(onUpdate: { dt in /* move */ }))
+sm.onChange = { from, to in print("\(from) -> \(to)") }
+
+sm.start(in: "Idle")
+sm.transition(to: "Run")
+func _process(delta: Double) { sm.update(delta: delta) }
+```
+
+### 🧱 Commands
+
+Validate-then-apply queue (useful for grid moves).
+
+```swift
+let queue = CommandQueue()
+let command = MoveCommand(
+  from: pos,
+  to: next,
+  passable: { grid.passable($0) },
+  move: { pos = $0 }
+)
+queue.push(command)
+queue.drain() // applies if not blocked; otherwise stays queued
+```
+
+### ⏳ GameTimer
+
+Manual timer with repetition and a static `schedule`.
+
+```swift
+@Godot
+final class Blinker: Control {
+  private let timer = GameTimer(duration: 0.4, repeats: true)
+
+  override func _ready() {
+    _ = GameTimer.schedule(after: 1.0) { [weak self] in
+      guard let self, let box: ColorRect = self.getNode("Box") else { return }
+      box.visible = true
+      self.timer.start()
+    }
+    timer.onTimeout = { [weak self] in self?.getNode("Box")?.visible.toggle() }
+  }
+
+  override func _process(delta: Double) { timer.tick(delta: delta) }
 }
 ```
 
+
+
+## 🎮 Input
+
+### InputSnapshot
+
+Per-frame action polling with pressed/released edges.
+
+```swift
+var input = InputSnapshot()
+override func _process(delta: Double) {
+  input.poll(["move_left", "move_right", "fire"])
+  if input.pressed("fire") { shoot() }
+  if input.down("move_left") { walk(-1) }
+  if input.released("move_right") { stopSkating() }
+}
+```
+
+## 🧭 Grid & Pathfinding
+
+`GridPos`/`Grid` helpers, A* pathfinding, BFS/Dijkstra maps, roguelike FOV, tiny AI tasks.
+
+```swift
+struct TileGrid: Grid {
+  let size: GridSize
+  let tileSize: Float = 16
+  let walls: Set<GridPos>
+  func passable(_ p: GridPos) -> Bool { inside(p) && !walls.contains(p) }
+}
+
+let grid = TileGrid(size: .init(w: 10, h: 8), walls: [GridPos(x: 3, y: 3)])
+let start = GridPos(x: 0, y: 0), goal = GridPos(x: 5, y: 4)
+
+// A*
+let path = AStar.find(grid: grid, start: start, goal: goal, passable: { grid.passable($0) })
+
+// Dijkstra (distance field from goals)
+let field = Dijkstra.solve(grid: grid, passable: { grid.passable($0) }, goals: [goal])
+
+// Roguelike FOV (shadowcasting)
+let fov = Fov.compute(map: { grid.passable($0) ? .open : .wall }, grid: grid, origin: start, radius: 6)
+
+// Tiny AI tasks
+var wander = Wander(pos: start, grid: grid, passable: { grid.passable($0) }, move: { pos = $0 })
+_ = wander.tick(dt: 0)
+var chase = ChaseDijkstra(pos: start, field: field, move: { pos = $0 }, grid: grid)
+_ = chase.tick(dt: 0)
+```
+
+## 🧰 Utilities
+
+```swift
+// MsgLog: simple append with hook
+MsgLog.shared.onAppend = { GD.print($0) }
+MsgLog.shared.write("Loaded")
+
+// onNextFrame: defer execution until next frame
+_ = Engine.onNextFrame { setupAfterFirstFrame() }
+
+// Node sugar
+let ui: Control? = node.getNode("UI/Root")// typed helper avoids `child as? Label`
+let labels: [Label] = node.getChildren() // ditto for arrays
+
+// Vector2 sugar (+ Codable)
+var v = Vector2(2, 3) * 4    // (8,12)
+let w = 0.5 * Vector2(10, 6) // (5,3)
+
+// Shapes constructors
+let rect = RectangleShape2D(w: 16, h: 8)
+let circ = CircleShape2D(radius: 6)
+let cap  = CapsuleShape2D(radius: 4, height: 12)
+
+// Named 2D Physics layers (bitmask convenience)
+let mask = Physics2DLayer.alpha // instead of 1 << 0
+```
 
 ## 📜 License
 
