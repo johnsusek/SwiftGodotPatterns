@@ -10,6 +10,19 @@ import SwiftGodot
 /// the mutated model, and the batch of events produced by systems.
 ///
 /// Middleware are invoked in the order they were added via ``Store/use(_:)``.
+///
+/// Example:
+/// ```swift
+/// let logger = StoreMiddleware<GameState, UserIntent, GameEvent>(
+///   before: { intents, model in
+///     print("Pumping with intents: \(intents) and model: \(model)")
+///   },
+///   after: { intents, model, events in
+///     print("Finished pump. Model: \(model), events: \(events)")
+///   }
+/// )
+/// store.use(logger)
+/// ```
 public struct StoreMiddleware<M, I, E> {
   /// Called immediately before systems run for a given cycle.
   /// - Parameters:
@@ -98,14 +111,12 @@ public final class Store<M, I, E> {
     }
 
     var batch: [E] = []
+
     for s in systems {
       s.apply(snapshot, &model, &batch)
     }
 
     if !batch.isEmpty {
-      for e in batch {
-        events.publish(e)
-      }
       events.publish(batch)
     }
 
