@@ -1,172 +1,173 @@
+import Compression
 import Foundation
 import SwiftGodot
 
-/// A networking bridge node that wires your game's model/store to Godot's
-/// high-level multiplayer API (HLMP).
+// MARK: - NetworkStore
+
+/// A bridge node that ships opaque payloads between your local store/model
+/// and Godot's High-Level Multiplayer API (HLMP).
 ///
-/// `NetworkStore` handles three lanes of traffic:
-/// - **Client -> Server**: batched *intents* from a client to the authority.
-/// - **Server -> Clients (delta)**: batched *events* fan-out to all clients.
-/// - **Server -> Clients (snapshot)**: occasional *full-state* snapshots (reliable).
+/// It provides three lanes:
+/// - Client -> Server: batched *intents*
+/// - Server -> Clients (delta): batched *events*
+/// - Server -> Clients (snapshot): *full model* state
 ///
-/// It also configures per-RPC permissions (authority/anyPeer), transfer modes
-/// (reliable/unreliableOrdered), and channels (e.g. gameplay vs reliable).
+/// The node does **not** interpret domain types. It only encodes/decodes via
+/// `Codable` (JSON) and forwards raw bytes over RPC.
 ///
-/// The node does not interpret your domain data; it only ships JSON strings and
-/// exposes closures you can bind to your own store/model.
+/// - Important: This node performs no reliability/ordering beyond HLMP config.
+///   Use `.reliable` only for rare snapshots; keep deltas unordered for speed.
 @Godot
 public final class NetworkStore: Node {
-  /// A full-state snapshot used for reliable resyncs and join-in-progress.
+  /// Full-state snapshot used for reliable resyncs and join-in-progress.
   ///
-  /// - Parameters:
-  ///   - tick: An authoritative tick/frame index to aid client reconciliation.
-  ///   - model: The complete model payload to replace the client's local model.
+  /// Encode your entire model plus an authoritative `tick` to help clients
+  /// reconcile local prediction.
   public struct ModelSnapshot<Model: Codable>: Codable {
-    /// Authoritative tick/frame index for reconciliation.
+    /// Authoritative frame/tick associated with `model`.
     public var tick: Int64
-    /// Complete authoritative model.
+    /// The complete model to replace the client's local state.
     public var model: Model
-
-    /// Creates a new model snapshot.
     public init(tick: Int64, model: Model) {
       self.tick = tick
       self.model = model
     }
   }
 
-  // MARK: Hooks
+  // MARK: Hooks (compressed bytes)
 
-  /// Called **on the server** when a client batch of intents arrives (already a JSON string).
-  ///
-  /// You usually bind this to a function that decodes into your `Intent` array and pushes
-  /// them into your authoritative store, then pumps the store.
-  public var onClientIntentsPayload: ((String) -> Void)?
+  /// Client -> Server hook. Receives raw payload bytes for *intents*.
+  /// - Note: Bytes are whatever your encoding produced (currently JSON Data).
+  public var onClientIntentsData: ((Data) -> Void)?
 
-  /// Called **on clients** when the server broadcasts a batch of events (JSON string).
-  ///
-  /// Bind this to your event bus to apply deltas to your client-side model.
-  public var onServerEventsPayload: ((String) -> Void)?
+  /// Server -> Clients hook. Receives raw payload bytes for *events*.
+  public var onServerEventsData: ((Data) -> Void)?
 
-  /// Called **on clients** when the server sends a full model snapshot (JSON string).
-  ///
-  /// Bind this to a decoder that sets your client-side model wholesale.
-  public var onModelStatePayload: ((String) -> Void)?
+  /// Server -> Clients hook. Receives raw payload bytes for *full model* state.
+  public var onModelStateData: ((Data) -> Void)?
 
-  /// The current peer's unique identifier from Godot's multiplayer layer.
-  ///
-  /// Returns `0` if the tree or multiplayer interface is missing.
+  /// Current peer id from `MultiplayerAPI`. Returns `0` if unavailable.
   public var peerID: Int32 { getTree()?.getMultiplayer()?.getUniqueId() ?? 0 }
 
-  /// Godot lifecycle entry; configures RPC permissions and subscribes multiplayer signals.
-  override public func _ready() { configureRpcPermissions(); hookMultiplayerSignals() }
-
-  // MARK: Client -> Server
-
-  /// Sends a raw JSON batch of **intents** from a client to the server.
-  ///
-  /// - Parameter s: A UTF-8 JSON string representing `[Intent]` (your type).
-  ///
-  /// The RPC is configured as:
-  /// - `mode`: `.anyPeer` (only non-authority callers are allowed)
-  /// - `transfer`: `.unreliableOrdered`
-  /// - `channel`: ``NetChannel/gameplay``
-  ///
-  /// - Important: You are responsible for encoding your intent array into the string.
-  public func sendIntentsPayload(_ s: String) {
-    let res = rpc(method: RPC.recvClientIntents, Variant(s))
-    if res != .ok { GD.print("RPC error sendIntentsPayload:", res) }
+  /// Godot lifecycle: configure RPC permissions and minimal diagnostics.
+  override public func _ready() {
+    configureRpcPermissions()
+    hookMultiplayerSignals()
   }
 
-  // MARK: Server -> Clients (events)
+  // MARK: Client -> Server (send)
 
-  /// Broadcasts a raw JSON batch of **events** from the server to all clients.
+  /// Sends a batch of client *intents* to the authority.
   ///
-  /// - Parameter s: A UTF-8 JSON string representing `[Event]` (your type).
-  ///
-  /// The RPC is configured as:
-  /// - `mode`: `.authority` (only the server may call)
-  /// - `transfer`: `.unreliableOrdered`
-  /// - `channel`: ``NetChannel/gameplay``
-  ///
-  /// Use this for frame-to-frame deltas (positions, inputs that became events, etc.).
-  public func broadcastEventsPayload(_ s: String) {
-    let res = rpc(method: RPC.applyServerEvents, Variant(s))
-    if res != .ok { GD.print("RPC error broadcastEventsPayload:", res) }
+  /// - Parameters:
+  ///   - items: Encodable intents. Empty arrays are ignored.
+  /// - Note: Encoded via `JSONEncoder` and sent with unordered unreliable RPC.
+  public func sendIntents<T: Codable>(_ items: [T]) {
+    if items.isEmpty { return }
+    guard let data = encodeJSON(items) else { return }
+    sendBytes(method: RPC.recvClientIntents, data)
   }
 
-  // MARK: Server -> Clients (full model snapshot)
+  // MARK: Server -> Clients (send)
 
-  /// Sends a **full model snapshot** from the server to clients (reliable).
+  /// Broadcasts server *events* to all clients (delta updates).
   ///
-  /// - Parameter s: A UTF-8 JSON string representing ``ModelSnapshot`` of your `Model`.
-  ///
-  /// The RPC is configured as:
-  /// - `mode`: `.authority`
-  /// - `transfer`: `.reliable`
-  /// - `channel`: ``NetChannel/reliable``
-  ///
-  /// Use snapshots to correct drift or for join-in-progress.
-  public func sendModelStatePayload(_ s: String) {
-    let res = rpc(method: RPC.applyFullModelState, Variant(s))
-    if res != .ok { GD.print("RPC error sendModelStatePayload:", res) }
+  /// - Parameters:
+  ///   - events: Encodable events. Empty arrays are ignored.
+  /// - Note: Unordered unreliable RPC by default for throughput.
+  public func broadcast<T: Codable>(_ events: [T]) {
+    if events.isEmpty { return }
+    guard let data = encodeJSON(events) else { return }
+    sendBytes(method: RPC.applyServerEvents, data)
   }
 
-  // MARK: RPC targets
-
-  /// RPC target invoked on the **server** when a client sent a batch of intents.
+  /// Sends a reliable full-model snapshot to all clients.
   ///
-  /// - Parameter payload: JSON string `[Intent]`.
-  /// - Note: Guarded so only the authority processes it.
-  @Callable func recvClientIntents(_ payload: String) {
+  /// Use sparingly (e.g., on join or periodic desync correction).
+  public func sendModelState<Model: Codable>(_ snap: ModelSnapshot<Model>) {
+    guard let data = encodeJSON(snap) else { return }
+    sendBytes(method: RPC.applyFullModelState, data)
+  }
+
+  /// Wires `NetworkStore` to a local `Store` by installing encode/decode bridges
+  /// and publishing events produced by the local reducer.
+  ///
+  /// - Parameters:
+  ///   - store: Your game store (`model`, `intents`, `events`).
+  /// - Behavior:
+  ///   - Incoming client intents -> `store.push` then `store.pump()`
+  ///   - Incoming server events -> `store.events.publish`
+  ///   - Incoming full model -> `store.model = snapshot.model`
+  ///   - Outbound events (locally produced) -> `broadcast(_:)`
+  /// - Warning: This assumes matching `Model/Intent/Event` types across peers.
+  public func wire<Model: Codable, Intent: Codable, Event: Codable>(to store: Store<Model, Intent, Event>) {
+    onClientIntentsData = { [weak store] raw in
+      let intents = decodeJSON([Intent].self, from: raw) ?? []
+      if intents.isEmpty { return }
+      intents.forEach { store?.push($0) }
+      store?.pump()
+    }
+    onServerEventsData = { [weak store] raw in
+      let events = decodeJSON([Event].self, from: raw) ?? []
+      if events.isEmpty { return }
+      store?.events.publish(events)
+    }
+    onModelStateData = { [weak store] raw in
+      guard let snap = decodeJSON(ModelSnapshot<Model>.self, from: raw) else { return }
+      store?.model = snap.model
+    }
+
+    store.use(.init(after: { [weak self] _, _, events in
+      if events.isEmpty { return }
+      self?.broadcast(events)
+    }))
+  }
+
+  // MARK: RPC targets (receive)
+
+  /// RPC target (authority only): receives client *intents* bytes.
+  /// - Parameter bytes: Payload as `PackedByteArray`.
+  /// - Note: Drops calls if not server/authority.
+  @Callable func recvClientIntents(_ bytes: PackedByteArray) {
     if getTree()?.getMultiplayer()?.isServer() != true { return }
-    onClientIntentsPayload?(payload)
+    let data = bytes.toData()
+    onClientIntentsData?(data)
   }
 
-  /// RPC target invoked on **clients** when the server broadcasted events.
-  ///
-  /// - Parameter payload: JSON string `[Event]`.
-  @Callable func applyServerEvents(_ payload: String) { onServerEventsPayload?(payload) }
+  /// RPC target: applies server *events* bytes on all peers.
+  @Callable func applyServerEvents(_ bytes: PackedByteArray) {
+    let data = bytes.toData()
+    onServerEventsData?(data)
+  }
 
-  /// RPC target invoked on **clients** when the server sent a full model snapshot.
-  ///
-  /// - Parameter payload: JSON string `ModelSnapshot<Model>`.
-  @Callable func applyFullModelState(_ payload: String) { onModelStatePayload?(payload) }
+  /// RPC target: applies a reliable full-model snapshot on all peers.
+  @Callable func applyFullModelState(_ bytes: PackedByteArray) {
+    let data = bytes.toData()
+    onModelStateData?(data)
+  }
 
   // MARK: RPC Permissions
 
-  /// Defines per-method RPC permissions, transport, and channel assignments.
+  /// Configures HLMP RPC permissions, transfer modes, and channels.
   ///
-  /// - Important: Keep channels stable across client and server; mismatched channels will
-  ///   silently drop messages.
+  /// - Design:
+  ///   - `recvClientIntents`: any peer -> server, unordered unreliable (gameplay)
+  ///   - `applyServerEvents`: server -> all, unordered unreliable (gameplay)
+  ///   - `applyFullModelState`: server -> all, reliable (separate channel)
   private func configureRpcPermissions() {
-    // Client -> Server: anyPeer on gameplay channel (unreliable ordered)
-    let cfgRecv = rpcConfigDict(mode: .anyPeer,
-                                transfer: .unreliableOrdered,
-                                callLocal: false,
-                                channel: NetChannel.gameplay.rawValue)
+    let cfgRecv = rpcConfigDict(mode: .anyPeer, transfer: .unreliableOrdered, callLocal: false, channel: RPCChannel.gameplay.rawValue)
     rpcConfig(method: RPC.recvClientIntents, config: cfgRecv)
 
-    // Server -> Clients (events): authority on gameplay channel (unreliable ordered)
-    let cfgApplyEvents = rpcConfigDict(mode: .authority,
-                                       transfer: .unreliableOrdered,
-                                       callLocal: false,
-                                       channel: NetChannel.gameplay.rawValue)
+    let cfgApplyEvents = rpcConfigDict(mode: .authority, transfer: .unreliableOrdered, callLocal: false, channel: RPCChannel.gameplay.rawValue)
     rpcConfig(method: RPC.applyServerEvents, config: cfgApplyEvents)
 
-    // Server -> Clients (snapshot): authority on reliable channel, callLocal=true for host-play
-    let cfgModelState = rpcConfigDict(mode: .authority,
-                                      transfer: .reliable,
-                                      callLocal: true,
-                                      channel: NetChannel.reliable.rawValue)
+    let cfgModelState = rpcConfigDict(mode: .authority, transfer: .reliable, callLocal: true, channel: RPCChannel.reliable.rawValue)
     rpcConfig(method: RPC.applyFullModelState, config: cfgModelState)
   }
 
-  // MARK: Multiplayer signals
+  // MARK: Multiplayer signals (minimal diagnostics)
 
-  /// Subscribes to useful multiplayer signals for minimal diagnostics.
-  ///
-  /// Prints events such as `peer_connected`, `peer_disconnected`,
-  /// `connected_to_server`, `connection_failed`, and `server_disconnected`.
+  /// Subscribes to a few `MultiplayerAPI` signals for lightweight logging.
   private func hookMultiplayerSignals() {
     guard let mp = getTree()?.getMultiplayer() else { return }
     _ = mp.peerConnected.connect { id in GD.print("peer_connected:", id) }
@@ -175,87 +176,40 @@ public final class NetworkStore: Node {
     _ = mp.connectionFailed.connect { GD.print("connection_failed") }
     _ = mp.serverDisconnected.connect { GD.print("server_disconnected") }
   }
-}
 
-// MARK: - Store wiring helpers
+  // MARK: Send helper
 
-public extension NetworkStore {
-  /// Wires the node's payload hooks into a generic authoritative store.
+  /// Encodes `Data` into a `PackedByteArray` and performs the RPC call.
   ///
   /// - Parameters:
-  ///   - store: Your store instance which exposes:
-  ///     - `push(_:)` and `pump()` for intents (server-side),
-  ///     - an `events` publisher for event fan-out (client-side),
-  ///     - a mutable `model` for snapshots (client-side).
-  func wire<Model: Codable, Intent: NetBatch, Event: NetBatch>(
-    store: Store<Model, Intent, Event>
-  ) {
-    onClientIntentsPayload = { [weak store] s in
-      let intents = Intent.decodeBatch(s)
-      if intents.isEmpty { return }
-      intents.forEach { store?.push($0) }
-      store?.pump()
-    }
-    onServerEventsPayload = { [weak store] s in
-      let events = Event.decodeBatch(s)
-      if events.isEmpty { return }
-      store?.events.publish(events)
-    }
-    onModelStatePayload = { [weak store] s in
-      guard let d = s.data(using: .utf8),
-            let snap = try? JSONDecoder().decode(ModelSnapshot<Model>.self, from: d) else { return }
-      store?.model = snap.model
-    }
-
-    // Server-side: auto-broadcast post-commit
-    store.use(.init(after: { [weak self] _, _, events in
-      if events.isEmpty { return }
-      self?.broadcast(events)
-    }))
-  }
-
-  /// Encodes and sends a batch of `Intent` values from a client to the server.
-  ///
-  /// - Parameter xs: Intents to encode and send. No-op if empty.
-  /// - SeeAlso: ``NetBatch`` for the default JSON encoder/decoder.
-  func sendIntents<Intent: NetBatch>(_ xs: [Intent]) {
-    if xs.isEmpty { return }
-    sendIntentsPayload(Intent.encodeBatch(xs))
-  }
-
-  /// Encodes and broadcasts a batch of `Event` values from the server to clients.
-  ///
-  /// - Parameter xs: Events to encode and broadcast. No-op if empty.
-  func broadcast<Event: NetBatch>(_ xs: [Event]) {
-    if xs.isEmpty { return }
-    broadcastEventsPayload(Event.encodeBatch(xs))
-  }
-
-  /// Encodes and sends a full model snapshot from the server to clients.
-  ///
-  /// - Parameter snap: The snapshot to serialize and send.
-  func sendModelState<Model: Codable>(_ snap: ModelSnapshot<Model>) {
-    guard let d = try? JSONEncoder().encode(snap),
-          let s = String(data: d, encoding: .utf8) else { return }
-    sendModelStatePayload(s)
+  ///   - method: The RPC method name (`StringName`).
+  ///   - data: Raw payload bytes (typically JSON).
+  /// - Note: Logs non-`ok` status for quick diagnostics.
+  @inline(__always) private func sendBytes(method: StringName, _ data: Data) {
+    let pba = PackedByteArray.fromData(data)
+    let res = rpc(method: method, Variant(pba))
+    if res != .ok { GD.print("RPC error", method, res) }
   }
 }
 
-// MARK: - RPC configuration helpers
+// MARK: - RPC Config
 
+/// Internal RPC config dictionary keys for HLMP.
 private enum RPCKeys {
-  /// VariantDictionary key: `.rpc_mode` (authority/anyPeer)
   static let rpcMode: StringName = "rpc_mode"
-  /// VariantDictionary key: `.transfer_mode` (reliable/unreliableOrdered/unreliable)
   static let transferMode: StringName = "transfer_mode"
-  /// VariantDictionary key: `.call_local` (invoke locally on the caller too)
   static let callLocal: StringName = "call_local"
-  /// VariantDictionary key: `.channel` (integer channel identifier)
   static let channel: StringName = "channel"
 }
 
-/// Builds a Variant dictionary for Godot's `rpc_config`.
-@inline(__always)
+/// Builds a `Variant` wrapping a `VariantDictionary` suitable for `rpcConfig`.
+///
+/// - Parameters:
+///   - mode: Who may call (e.g., `.anyPeer`, `.authority`).
+///   - transfer: Reliability/ordering (e.g., `.reliable`, `.unreliableOrdered`).
+///   - callLocal: Whether local call should fire alongside networked call.
+///   - channel: HLMP channel index (e.g., gameplay vs reliable).
+/// - Returns: A `Variant` holding the config dictionary.
 private func rpcConfigDict(mode: MultiplayerAPI.RPCMode,
                            transfer: MultiplayerPeer.TransferMode,
                            callLocal: Bool,
@@ -269,71 +223,60 @@ private func rpcConfigDict(mode: MultiplayerAPI.RPCMode,
   return Variant(cfg)
 }
 
-// MARK: - RPC method names & channels
-
+/// RPC method names used by this node.
 private enum RPC {
   static let recvClientIntents = StringName("recvClientIntents")
   static let applyServerEvents = StringName("applyServerEvents")
   static let applyFullModelState = StringName("applyFullModelState")
 }
 
-/// Logical channels for HLMP traffic.
-private enum NetChannel: Int32 {
-  case reliable = 0, gameplay = 1
-}
+/// Channels for separating reliable vs gameplay traffic.
+private enum RPCChannel: Int32 { case reliable = 0, gameplay = 1 }
 
-// MARK: - Batch codec
+// MARK: - JSON helpers
 
-/// A tiny protocol for batched JSON transport.
-///
-/// Conform your `Intent` and `Event` enums/structs to `NetBatch` to get
-/// default JSON batch encoding/decoding helpers.
-///
-/// The default implementation uses `JSONEncoder`/`JSONDecoder` with UTF-8 strings.
-public protocol NetBatch: Codable {
-  /// Encodes an array of values into a compact JSON string.
-  static func encodeBatch(_ items: [Self]) -> String
-  /// Decodes values from a JSON string into an array.
-  static func decodeBatch(_ s: String) -> [Self]
-}
+/// Encodes a `Codable` value using `JSONEncoder`.
+/// - Returns: `Data` on success, otherwise `nil`.
+@inline(__always) func encodeJSON<T: Codable>(_ value: T) -> Data? { try? JSONEncoder().encode(value) }
 
-public extension NetBatch {
-  /// Encodes an array into a UTF-8 JSON string, or `"[]"` on failure.
-  static func encodeBatch(_ items: [Self]) -> String {
-    let enc = JSONEncoder()
-    enc.outputFormatting = []
-    return (try? enc.encode(items)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+/// Decodes a `Codable` value from `Data` using `JSONDecoder`.
+/// - Parameters:
+///   - _: The target type (for inference only).
+///   - data: Raw JSON bytes.
+/// - Returns: Decoded instance on success, otherwise `nil`.
+@inline(__always) func decodeJSON<T: Codable>(_: T.Type, from data: Data) -> T? { try? JSONDecoder().decode(T.self, from: data) }
+
+// MARK: - PackedByteArray ↔︎ Data bridge
+
+private extension PackedByteArray {
+  /// Copies Swift `Data` into a new `PackedByteArray`.
+  ///
+  /// - Note: Performs a byte-wise append. Reserve/copy optimizations can be
+  ///   introduced later if profiling shows this as a hotspot.
+  static func fromData(_ data: Data) -> PackedByteArray {
+    let p = PackedByteArray()
+    data.withUnsafeBytes { raw in
+      guard let base = raw.bindMemory(to: UInt8.self).baseAddress else { return }
+      var i = 0
+      while i < data.count {
+        p.append(base[i])
+        i += 1
+      }
+    }
+    return p
   }
 
-  /// Decodes an array from a UTF-8 JSON string, or `[]` on failure.
-  static func decodeBatch(_ s: String) -> [Self] {
-    guard let data = s.data(using: .utf8) else { return [] }
-    return (try? JSONDecoder().decode([Self].self, from: data)) ?? []
+  /// Copies a `PackedByteArray` into Swift `Data`.
+  ///
+  /// - Note: Reserves capacity up front to avoid repeated reallocations.
+  func toData() -> Data {
+    var d = Data()
+    d.reserveCapacity(Int(size()))
+    var i = 0
+    while i < Int(size()) {
+      d.append(self[i])
+      i += 1
+    }
+    return d
   }
-}
-
-/// An example intent envelope used by some games.
-///
-/// You can replace this with your own domain-specific intents, or
-/// `extra` is provided so you can piggyback custom payloads without changing transport.
-public enum NetworkIntent<Extra: Codable>: Codable {
-  /// Client requests to join the session.
-  case join
-  /// Client requests to leave the session.
-  case leave
-  /// Domain-specific extensibility hook.
-  case extra(Extra)
-}
-
-/// An example event envelope used by some games.
-///
-/// You can replace this with your own domain-specific events, or
-/// `extra` is provided so you can piggyback custom payloads without changing transport.
-public enum NetworkEvent<Extra: Codable>: Codable {
-  /// A peer was spawned into the world at a position.
-  case spawned(peer: Int32, at: Vector2)
-  /// A peer was despawned/removed from the world.
-  case despawned(peer: Int32)
-  /// Domain-specific extensibility hook.
-  case extra(Extra)
 }
