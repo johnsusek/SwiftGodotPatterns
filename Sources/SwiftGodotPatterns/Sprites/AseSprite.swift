@@ -146,7 +146,7 @@ public final class AseSprite: AnimatedSprite2D {
   }
 }
 
-// MARK: - Core build pipeline (static so it’s easy to test/reuse)
+// MARK: - Core build pipeline (static so it's easy to test/reuse)
 
 private extension AseSprite {
   struct AseDecoded {
