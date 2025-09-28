@@ -51,9 +51,9 @@ public struct PressState {
 ///   override func _physicsProcess(delta: Double) {
 ///     input.poll(actions)
 ///
-///     if input.pressed("jump") { /* start jump */ }
-///     if input.down("move_left") { /* apply left movement */ }
-///     if input.released("attack") { /* finish attack charge */ }
+///     if input.wasPressed("jump") { /* start jump */ }
+///     if input.isDown("move_left") { /* apply left movement */ }
+///     if input.wasReleased("attack") { /* finish attack charge */ }
 ///   }
 /// }
 /// ```
@@ -83,11 +83,11 @@ public struct InputSnapshot {
   }
 
   /// Returns `true` if the named action is currently held.
-  @inlinable public func down(_ name: String) -> Bool { map[StringName(name)]?.down == true }
+  @inlinable public func isDown(_ name: String) -> Bool { map[StringName(name)]?.down == true }
 
   /// Returns `true` only on the frame when the named action transitions to held.
-  @inlinable public func pressed(_ name: String) -> Bool { map[StringName(name)]?.pressed == true }
+  @inlinable public func wasPressed(_ name: String) -> Bool { map[StringName(name)]?.pressed == true }
 
   /// Returns `true` only on the frame when the named action transitions to unheld.
-  @inlinable public func released(_ name: String) -> Bool { map[StringName(name)]?.released == true }
+  @inlinable public func wasReleased(_ name: String) -> Bool { map[StringName(name)]?.released == true }
 }
