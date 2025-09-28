@@ -54,23 +54,16 @@ public extension Node {
     return Vector2(x: s.x * 0.5, y: s.y * 0.5)
   }
 
-  /// Node lookup by string path; returns nil if not found.
-  func getNode(_ path: String) -> Node? { getNode(path: NodePath(path)) }
+  func getNode<T: Node>(_ path: String) -> T? {
+    let nodePath = NodePath(path)
+    guard hasNode(path: nodePath) else { return nil }
+    return getNode(path: nodePath) as? T
+  }
 
-  /// Typed node lookup by string path; returns nil if not found or wrong type.
-  ///
-  /// Example:
-  ///
-  /// ```swift
-  /// let box: ColorRect = getNode("Box")
-  /// ```
-  ///
-  /// Replaces:
-  ///
-  /// ```swift
-  /// let box = self.getNode(path: NodePath("Box")) as? ColorRect
-  /// ```
-  func getNode<T: Node>(_ path: String) -> T? { getNode(path: NodePath(path)) as? T }
+  func getNode(_ path: String) -> Node? {
+    let nodePath = NodePath(path)
+    return hasNode(path: nodePath) ? getNode(path: nodePath) : nil
+  }
 
   /// Get all children of a specific type.
   ///
@@ -142,6 +135,14 @@ public extension Engine {
   static func onNextFrame(_ f: @escaping () -> Void) -> Bool {
     guard let tree = Engine.getMainLoop() as? SceneTree,
           let timer = tree.createTimer(timeSec: 0.0) else { return false }
+    _ = timer.timeout.connect { f() }
+    return true
+  }
+
+  @discardableResult
+  static func onNextPhysicsFrame(_ f: @escaping () -> Void) -> Bool {
+    guard let tree = Engine.getMainLoop() as? SceneTree,
+          let timer = tree.createTimer(timeSec: 0.0, processInPhysics: true) else { return false }
     _ = timer.timeout.connect { f() }
     return true
   }
