@@ -82,23 +82,23 @@ bus.publish(.spawned)
 bus.cancel(token)
 ```
 
-### 🧩 Store (model/intent/event + systems)
+### 🧩 Store (state/intent/event + mutations)
 
 Tiny ECS/Redux-ish store with middleware and event bus.
 
 ```swift
-struct Model { var score = 0 } // Your game state
+struct State { var score = 0 } // Your game state
 enum Intent { case add(Int) } // "What we want to do" (inputs to the Store)
-enum Event { case scoreChanged(Int) } // "What actually happened" (outputs from systems)
+enum Event { case scoreChanged(Int) } // "What actually happened" (outputs from mutations)
 
-let store = Store<Model, Intent, Event>(model: .init())
+let store = Store<State, Intent, Event>(state: .init())
 
-// Register a system: consumes intents, mutates model, emits events.
-store.register(.init { intents, model, events in
+// Register a mutator: consumes intents, mutates state, emits events.
+store.register(.init { intents, state, events in
   for intent in intents {
     guard case let .add(amount) = intent else { continue }
-    model.score += amount // Mutate state
-    events.append(.scoreChanged(model.score)) // Broadcast what happened
+    state.score += amount // Mutate state
+    events.append(.scoreChanged(state.score)) // Broadcast what happened
   }
 })
 
@@ -183,14 +183,14 @@ hp.damage(200)  // HP: 80 -> 0, prints "You died!", then onDamaged(200)
 
 ```
 
-### 🧪 Effects & Stats
+### 🧪 Stats & Effects
 
 Lightweight RPG stats with timed effects.
 
 ```swift
 var stats = StatBlock(hp: 20, atk: 3, def: 1)
 
-struct Berserk: Effect {
+struct Berserk: StatEffect {
   let id = "berserk"
   var remaining = 3
 
@@ -199,7 +199,7 @@ struct Berserk: Effect {
   }
 }
 
-let bag = EffectBag()
+let bag = StatEffectBag()
 bag.add(Berserk())
 bag.apply(to: &stats) // stats.atk == 8
 bag.tick() // remaining -> 2

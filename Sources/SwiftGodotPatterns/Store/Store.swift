@@ -5,40 +5,40 @@ import SwiftGodot
 ///
 /// Use middleware to log, profile, enforce invariants, or emit analytics
 /// around a single call to ``Store/pump()`` or ``Store/commit(_:)``.
-/// The `before` closure observes the *snapshot* of intents and the current model
-/// prior to systems running. The `after` closure observes the same snapshot,
-/// the mutated model, and the batch of events produced by systems.
+/// The `before` closure observes the *snapshot* of intents and the current state
+/// prior to mutators running. The `after` closure observes the same snapshot,
+/// the mutated state, and the batch of events produced by mutators.
 ///
 /// Middleware are invoked in the order they were added via ``Store/use(_:)``.
 ///
 /// Example:
 /// ```swift
 /// let logger = StoreMiddleware<GameState, UserIntent, GameEvent>(
-///   before: { intents, model in
-///     print("Pumping with intents: \(intents) and model: \(model)")
+///   before: { intents, state in
+///     print("Pumping with intents: \(intents) and state: \(state)")
 ///   },
-///   after: { intents, model, events in
-///     print("Finished pump. Model: \(model), events: \(events)")
+///   after: { intents, state, events in
+///     print("Finished pump. State: \(state), events: \(events)")
 ///   }
 /// )
 /// store.use(logger)
 /// ```
-public struct StoreMiddleware<M, I, E> {
-  /// Called immediately before systems run for a given cycle.
+public struct StoreMiddleware<S, I, E> {
+  /// Called immediately before mutators run for a given cycle.
   /// - Parameters:
   ///   - intents: Immutable snapshot of intents for this cycle.
-  ///   - model: Current model *before* mutation.
-  public var before: (([I], M) -> Void)?
+  ///   - state: Current state *before* mutation.
+  public var before: ((S, [I]) -> Void)?
 
-  /// Called after systems finish for a given cycle.
+  /// Called after mutators finish for a given cycle.
   /// - Parameters:
   ///   - intents: The same snapshot passed to `before`.
-  ///   - model: Model *after* mutation by systems.
+  ///   - state: State *after* mutation by mutators.
   ///   - events: Events emitted during this cycle (may be empty).
-  public var after: (([I], M, [E]) -> Void)?
+  public var after: ((S, [I], [E]) -> Void)?
 
   /// Creates middleware with optional hooks.
-  public init(before: (([I], M) -> Void)? = nil, after: (([I], M, [E]) -> Void)? = nil) {
+  public init(before: ((S, [I]) -> Void)? = nil, after: ((S, [I], [E]) -> Void)? = nil) {
     self.before = before
     self.after = after
   }
@@ -48,39 +48,39 @@ public struct StoreMiddleware<M, I, E> {
 ///
 /// `Store` coordinates three things:
 /// * **Intents** (`I`) you enqueue via ``push(_:)``/``commit(_:)``
-/// * **Systems** that consume the intents, mutate the **model** (`M`), and emit **events** (`E`)
+/// * **Mutators** that consume the intents, mutate the **state** (`M`), and emit **events** (`E`)
 /// * An **event hub** that publishes each event and the final batch
 ///
-/// Systems are registered in order with ``register(_:)`` and must conform to your
-/// `GameSystem<M, I, E>` API (expected to implement something like `apply(_:inout M:inout [E])`).
-public final class Store<M, I, E> {
-  /// The authoritative state mutated by systems during a pump.
-  public var model: M
+/// Mutators are registered in order with ``register(_:)`` and must conform to your
+/// `Mutator<M, I, E>` API (expected to implement something like `apply(_:inout M:inout [E])`).
+public final class Store<S, I, E> {
+  /// The authoritative state mutated by mutators during a pump.
+  public var state: S
 
   private var intents: [I] = []
-  private var systems: [GameSystem<M, I, E>] = []
-  private var middlewares: [StoreMiddleware<M, I, E>] = []
+  private var mutators: [Mutator<S, I, E>] = []
+  private var middlewares: [StoreMiddleware<S, I, E>] = []
 
-  /// The event hub used to publish system outputs.
+  /// The event hub used to publish mutator outputs.
   ///
   /// If `bus` is not provided at init, a type-scoped global hub is resolved via
   /// `GlobalEventBuses.hub(E.self)`.
   public let events: EventHub<E>
 
-  /// Creates a store with an initial model and optional event hub.
+  /// Creates a store with an initial state and optional event hub.
   /// - Parameters:
-  ///   - model: Initial state value.
+  ///   - state: Initial state value.
   ///   - bus: Event hub; defaults to a shared hub for `E`.
-  public init(model: M, bus: EventHub<E>? = nil) {
-    self.model = model
+  public init(state: S, bus: EventHub<E>? = nil) {
+    self.state = state
     events = bus ?? GlobalEventBuses.hub(E.self)
   }
 
-  /// Registers a system to run during pumps. Systems execute in registration order.
-  public func register(_ s: GameSystem<M, I, E>) { systems.append(s) }
+  /// Registers a mutator to run during pumps. Mutators execute in registration order.
+  public func register(_ s: Mutator<S, I, E>) { mutators.append(s) }
 
   /// Installs a middleware. Middleware run in the order they are added.
-  public func use(_ mw: StoreMiddleware<M, I, E>) { middlewares.append(mw) }
+  public func use(_ mw: StoreMiddleware<S, I, E>) { middlewares.append(mw) }
 
   /// Enqueues an intent to be applied on the next pump.
   public func push(_ i: I) { intents.append(i) }
@@ -99,21 +99,21 @@ public final class Store<M, I, E> {
   }
 
   /// Runs one processing cycle:
-  /// snapshots intents, clears the queue, invokes middleware and systems,
+  /// snapshots intents, clears the queue, invokes middleware and mutators,
   /// publishes events individually *and* as a batch, then calls `after` middleware.
   public func pump() {
-    if intents.isEmpty, systems.isEmpty { return }
+    if intents.isEmpty, mutators.isEmpty { return }
     let snapshot = intents
     intents.removeAll()
 
     for m in middlewares {
-      m.before?(snapshot, model)
+      m.before?(state, snapshot)
     }
 
     var batch: [E] = []
 
-    for s in systems {
-      s.apply(snapshot, &model, &batch)
+    for s in mutators {
+      s.apply(&state, snapshot, &batch)
     }
 
     if !batch.isEmpty {
@@ -121,7 +121,7 @@ public final class Store<M, I, E> {
     }
 
     for m in middlewares {
-      m.after?(snapshot, model, batch)
+      m.after?(state, snapshot, batch)
     }
   }
 }

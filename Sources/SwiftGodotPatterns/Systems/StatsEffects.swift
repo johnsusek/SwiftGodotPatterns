@@ -31,9 +31,9 @@ public struct StatBlock {
 /// A time-bounded gameplay modifier that can alter a `StatBlock`.
 ///
 /// Conformers may represent buffs, debuffs, auras, or status ailments.
-/// `remaining` typically counts down in ticks/turns via an `EffectBag`.
-public protocol Effect {
-  /// Stable identifier used as the dictionary key in `EffectBag`.
+/// `remaining` typically counts down in ticks/turns via an `StatEffectBag`.
+public protocol StatEffect {
+  /// Stable identifier used as the dictionary key in `StatEffectBag`.
   var id: String { get }
   /// Remaining duration in ticks/turns. When this reaches zero, the effect expires.
   var remaining: Int { get set }
@@ -42,20 +42,20 @@ public protocol Effect {
   func modify(_ s: inout StatBlock)
 }
 
-/// A container that owns, updates, and applies active `Effect`s.
+/// A container that owns, updates, and applies active `StatEffect`s.
 ///
-/// Effects are keyed by `Effect.id`. Adding an effect with an existing id replaces
+/// StatEffects are keyed by `StatEffect.id`. Adding an effect with an existing id replaces
 /// the previous one (refresh/override semantics).
-public final class EffectBag {
+public final class StatEffectBag {
   /// Active effects keyed by id.
-  public private(set) var effects: [String: Effect] = [:]
+  public private(set) var effects: [String: StatEffect] = [:]
 
   /// Creates an empty bag.
   public init() {}
 
   /// Adds or replaces an effect by its `id`.
   /// - Parameter e: The effect to insert.
-  public func add(_ e: Effect) { effects[e.id] = e }
+  public func add(_ e: StatEffect) { effects[e.id] = e }
 
   /// Removes an effect by id, if present.
   public func remove(_ id: String) { effects.removeValue(forKey: id) }

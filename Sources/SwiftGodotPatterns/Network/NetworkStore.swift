@@ -4,13 +4,13 @@ import SwiftGodot
 
 // MARK: - NetworkStore
 
-/// Ships opaque payloads between your local store/model and Godot HLMP,
+/// Ships opaque payloads between your local store/state and Godot HLMP,
 /// with client-side prediction + reconciliation.
 ///
 /// Lanes:
 /// - Client -> Server: `[NetIntentBlob]` (seq, from, payload MessagePack bytes)
 /// - Server -> Clients (delta): `NetEvents<Event>` (tick, acks, events)
-/// - Server -> Clients (snapshot): `Snap<Model>` (tick, acks, model)
+/// - Server -> Clients (snapshot): `Snap<State>` (tick, acks, state)
 ///
 /// The node does not interpret domain types beyond Codable encode/decode.
 @Godot
@@ -27,7 +27,7 @@ public final class NetworkStore: Node {
   /// Server -> Clients (raw bytes)
   public var onServerEventsData: ((Data) -> Void)?
   /// Server -> Clients (raw bytes, snapshot)
-  public var onModelStateData: ((Data) -> Void)?
+  public var onStateData: ((Data) -> Void)?
 
   /// Current peer id (0 if unavailable).
   public var peerID: Int32 { getTree()?.getMultiplayer()?.getUniqueId() ?? 0 }
@@ -45,9 +45,9 @@ public final class NetworkStore: Node {
   ///   - Client commits wrap intents with per-client `seq`, send to server, and apply locally (optimistic).
   ///   - Client tracks un-acked intents and, upon authoritative events/snapshots, drops acked and replays remaining.
   ///   - Server decodes client blobs, updates `serverAcks[from]`, applies intents, and broadcasts `NetEvents` with acks.
-  public func wire<Model: Codable, Intent: Codable, Event: Codable>(to store: Store<Model, Intent, Event>) {
+  public func wire<State: Codable, Intent: Codable, Event: Codable>(to store: Store<State, Intent, Event>) {
     // --- Client-side prediction state (captured by closures)
-    var baseline: Model = store.model // authoritative baseline (advanced only by server events/snapshots)
+    var baseline: State = store.state // authoritative baseline (advanced only by server events/snapshots)
     var nextSeq: Int64 = 0 // per-client local sequence
     var pending: [(seq: Int64, intent: Intent)] = [] // un-acked local intents (ordered)
     let localPeer = PeerID(peerID == 0 ? 1 : peerID)
@@ -126,14 +126,16 @@ public final class NetworkStore: Node {
         if i > 0 { pending.removeFirst(i) }
       }
 
+      if reconciling { return }
+
       // Reconcile:
-      // 1) Reset model to authoritative baseline.
+      // 1) Reset state to authoritative baseline.
       // 2) Apply authoritative events to advance baseline.
       // 3) Replay remaining local intents on top.
       reconciling = true
-      store.model = baseline
+      store.state = baseline
       store.events.publish(net.events)
-      baseline = store.model
+      baseline = store.state
       if !pending.isEmpty {
         for item in pending {
           store.push(item.intent)
@@ -143,10 +145,10 @@ public final class NetworkStore: Node {
       reconciling = false
     }
 
-    // --- CLIENT: authoritative snapshot => same reconcile path with full model
-    onModelStateData = { [weak store] raw in
+    // --- CLIENT: authoritative snapshot => same reconcile path with full state
+    onStateData = { [weak store] raw in
       guard let store else { return }
-      guard let snap = deserialize(Snap<Model>.self, from: raw) else { return }
+      guard let snap = deserialize(Snap<State>.self, from: raw) else { return }
       let lastAck = snap.acks[localPeer] ?? 0
 
       if !pending.isEmpty {
@@ -158,8 +160,8 @@ public final class NetworkStore: Node {
       }
 
       reconciling = true
-      baseline = snap.model
-      store.model = baseline
+      baseline = snap.state
+      store.state = baseline
       if !pending.isEmpty {
         for item in pending {
           store.push(item.intent)
@@ -194,12 +196,12 @@ public final class NetworkStore: Node {
   }
 
   /// Server-only: send full snapshot with acks.
-  public func sendModelState<M: Codable>(_ model: M) {
+  public func sendState<M: Codable>(_ state: M) {
     guard isServer else { return }
     authorityTick &+= 1
-    let snap = Snap(tick: authorityTick, model: model, acks: serverAcks)
+    let snap = Snap(tick: authorityTick, state: state, acks: serverAcks)
     guard let data = serialize(snap) else { return }
-    sendBytes(method: RPC.applyFullModelState, data)
+    sendBytes(method: RPC.applyFullState, data)
   }
 
   // MARK: RPC receive targets
@@ -213,8 +215,8 @@ public final class NetworkStore: Node {
     onServerEventsData?(bytes.toData())
   }
 
-  @Callable func applyFullModelState(_ bytes: PackedByteArray) {
-    onModelStateData?(bytes.toData())
+  @Callable func applyFullState(_ bytes: PackedByteArray) {
+    onStateData?(bytes.toData())
   }
 
   // MARK: RPC config / signals
@@ -228,8 +230,8 @@ public final class NetworkStore: Node {
     let cfgApplyEvents = rpcConfigDict(mode: .authority, transfer: .unreliableOrdered, callLocal: false, channel: RPCChannel.gameplay.rawValue)
     rpcConfig(method: RPC.applyServerEvents, config: cfgApplyEvents)
 
-    let cfgModelState = rpcConfigDict(mode: .authority, transfer: .reliable, callLocal: true, channel: RPCChannel.reliable.rawValue)
-    rpcConfig(method: RPC.applyFullModelState, config: cfgModelState)
+    let cfgState = rpcConfigDict(mode: .authority, transfer: .reliable, callLocal: true, channel: RPCChannel.reliable.rawValue)
+    rpcConfig(method: RPC.applyFullState, config: cfgState)
   }
 
   private func hookMultiplayerSignals() {
@@ -277,7 +279,7 @@ func rpcConfigDict(mode: MultiplayerAPI.RPCMode,
 enum RPC {
   static let recvClientIntents = StringName("recvClientIntents")
   static let applyServerEvents = StringName("applyServerEvents")
-  static let applyFullModelState = StringName("applyFullModelState")
+  static let applyFullState = StringName("applyFullState")
 }
 
 enum RPCChannel: Int32 { case reliable = 0, gameplay = 1 }
@@ -330,9 +332,9 @@ public struct NetEvents<E: Codable>: Codable {
 /// Server -> Clients full snapshot (authoritative).
 public struct Snap<M: Codable>: Codable {
   public var tick: Int64
-  public var model: M
+  public var state: M
   public var acks: [PeerID: Int64]
-  public init(tick: Int64, model: M, acks: [PeerID: Int64]) { self.tick = tick; self.model = model; self.acks = acks }
+  public init(tick: Int64, state: M, acks: [PeerID: Int64]) { self.tick = tick; self.state = state; self.acks = acks }
 }
 
 // MessagePack helpers

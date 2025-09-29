@@ -152,13 +152,13 @@ public enum GlobalEventBuses {
   }
 }
 
-/// Transforms intents into model mutations and outbound events.
+/// Transforms intents into state mutations and outbound events.
 ///
-/// `GameSystem` wraps an `apply` function suitable for unidirectional data flow:
-/// given a list of `Intent`, it mutates `Model` in-place and appends produced `Event`s to `out`.
+/// `Mutator` wraps an `apply` function suitable for unidirectional data flow:
+/// given a list of `Intent`, it mutates `State` in-place and appends produced `Event`s to `out`.
 ///
 /// - Type Parameters:
-///   - Model: The mutable state being updated.
+///   - State: The mutable state being updated.
 ///   - Intent: The input commands/intentions to apply.
 ///   - Event: The side-effect outputs produced during application.
 ///
@@ -168,22 +168,22 @@ public enum GlobalEventBuses {
 /// enum Intent { case inc, dec }
 /// enum Event { case clamped }
 ///
-/// let system = GameSystem<Counter, Intent, Event> { intents, model, out in
+/// let mutator = Mutator<Counter, Intent, Event> { intents, state, out in
 ///   for intent in intents {
 ///     switch intent {
-///     case .inc: model.value += 1
-///     case .dec: model.value -= 1
+///     case .inc: state.value += 1
+///     case .dec: state.value -= 1
 ///     }
 ///   }
-///   if model.value < 0 { model.value = 0; out.append(.clamped) }
+///   if state.value < 0 { state.value = 0; out.append(.clamped) }
 /// }
 /// ```
-public struct GameSystem<Model, Intent, Event> {
-  /// The reducer: applies `intents` to `model`, appending any produced events to `out`.
-  public let apply: (_ intents: [Intent], _ model: inout Model, _ out: inout [Event]) -> Void
+public struct Mutator<State, Intent, Event> {
+  /// The reducer: applies `intents` to `state`, appending any produced events to `out`.
+  public let apply: (_ state: inout State, _ intents: [Intent], _ out: inout [Event]) -> Void
 
-  /// Creates a new system with the provided reducer.
+  /// Creates a new mutator with the provided reducer.
   ///
-  /// - Parameter apply: Closure that mutates `model` for each intent and appends any emitted events to `out`.
-  public init(_ apply: @escaping ([Intent], inout Model, inout [Event]) -> Void) { self.apply = apply }
+  /// - Parameter apply: Closure that mutates `state` for each intent and appends any emitted events to `out`.
+  public init(_ apply: @escaping (inout State, [Intent], inout [Event]) -> Void) { self.apply = apply }
 }
