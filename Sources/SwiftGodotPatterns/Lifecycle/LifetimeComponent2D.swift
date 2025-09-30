@@ -7,7 +7,7 @@ import SwiftGodot
 /// - **Off-screen expiry** via ``offscreen`` with optional debounce ``offscreenDelay``
 /// - **Pool-aware**: optionally returns the host to a pool using ``releaseToPool``
 ///
-/// Add `AutoDespawn2D` as a **child** of the node you want to despawn. On first
+/// Add `LifetimeComponent2D` as a **child** of the node you want to despawn. On first
 /// ready, it captures `getParent()` as its *host* and manages teardown when any
 /// configured condition is met. Teardown is **idempotent** (it runs once).
 ///
@@ -16,14 +16,14 @@ import SwiftGodot
 /// // Free after 4 seconds or when it leaves the camera (whichever first).
 /// GNode<Node2D>("Bullet") {
 ///   Sprite2D$().res(\.texture, "art/bullet.png")
-///   GNode<AutoDespawn2D>().configure {
+///   GNode<LifetimeComponent2D>().configure {
 ///     $0.seconds = 4
 ///     $0.offscreen = true
 ///   }
 /// }
 /// ```
 @Godot
-public final class AutoDespawn2D: Node {
+public final class LifetimeComponent2D: Node {
   // MARK: Configuration
 
   /// Optional time-to-live (seconds).

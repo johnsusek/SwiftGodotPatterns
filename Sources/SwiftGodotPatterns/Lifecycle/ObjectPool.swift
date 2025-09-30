@@ -2,7 +2,7 @@ import SwiftGodot
 
 /// An optional pair of lifecycle hooks for pooled objects.
 ///
-/// Types placed in an `Pool` can conform to `PoolItem` to receive
+/// Types placed in an `Pool` can conform to `PooledObject` to receive
 /// hook calls during pooling:
 /// - `onRelease()` is invoked **by the pool** whenever an object is returned
 ///   to the pool (and also right after creation to normalize the initial state).
@@ -11,7 +11,7 @@ import SwiftGodot
 ///
 /// Conformance is optional
 // default implementations are no-ops.
-public protocol PoolItem: AnyObject {
+public protocol PooledObject: AnyObject {
   /// Prepare the object for active use (e.g., make visible, enable physics).
   func onAcquire()
 
@@ -20,7 +20,7 @@ public protocol PoolItem: AnyObject {
 }
 
 /// Default no-op hooks so conformance is opt-in and low-friction.
-public extension PoolItem {
+public extension PooledObject {
   func onAcquire() {}
   func onRelease() {}
 }
@@ -37,7 +37,7 @@ public extension PoolItem {
 ///
 /// ### Example
 /// ```swift
-/// final class Bullet: Node2D, PoolItem {
+/// final class Bullet: Node2D, PooledObject {
 ///   func onAcquire() { visible = true }
 ///   func onRelease() { visible = false
 // position = .zero }
@@ -90,12 +90,12 @@ public final class ObjectPool<T: Object> {
   /// Creates a new instance from the `scene` or `factory`.
   private func make() -> T? {
     if let s = scene, let o = s.instantiate() as? T {
-      (o as? PoolItem)?.onRelease()
+      (o as? PooledObject)?.onRelease()
       return o
     }
 
     if let f = factory { let o = f()
-      (o as? PoolItem)?.onRelease()
+      (o as? PooledObject)?.onRelease()
       return o
     }
     return nil
@@ -106,13 +106,17 @@ public final class ObjectPool<T: Object> {
   /// Note: This method does **not** call `onAcquire()`
   // call it yourself if
   /// your type uses that hook.
-  public func acquire() -> T? { free.popLast() ?? make() }
+  public func acquire() -> T? {
+    let o = free.popLast() ?? make()
+    (o as? PooledObject)?.onAcquire()
+    return o
+  }
 
   /// Returns an instance to the pool for reuse.
   ///
-  /// Calls `onRelease()` on `PoolItem` conformers, then appends to the free list.
+  /// Calls `onRelease()` on `PooledObject` conformers, then appends to the free list.
   public func release(_ o: T) {
-    (o as? PoolItem)?.onRelease()
+    (o as? PooledObject)?.onRelease()
     if let node = o as? Node, let p = node.getParent() { p.removeChild(node: node) }
     if free.count < max { free.append(o) } else { (o as? Node)?.queueFree() }
   }
@@ -125,12 +129,12 @@ public final class ObjectPool<T: Object> {
 /// let pool = Pool<Bullet>(factory: { Bullet() })
 /// pool.preload(64)
 ///
-/// PoolScope(pool).using { b in
+/// PoolLease(pool).using { b in
 ///   b.onAcquire()
 ///   // configure and add to scene...
 /// }
 /// ```
-public struct PoolScope<T: Object> {
+public struct PoolLease<T: Object> {
   /// The underlying pool.
   private let pool: ObjectPool<T>
 

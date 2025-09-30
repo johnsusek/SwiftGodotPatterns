@@ -94,6 +94,10 @@ public extension Node {
     }
     return parents
   }
+
+  func component<C: Node>(_: C.Type) -> C? {
+    getChildren().first(where: { $0 is C }) as? C
+  }
 }
 
 public extension RectangleShape2D {
@@ -145,5 +149,11 @@ public extension Engine {
           let timer = tree.createTimer(timeSec: 0.0, processInPhysics: true) else { return false }
     _ = timer.timeout.connect { f() }
     return true
+  }
+}
+
+public func register(types: [Object.Type]) {
+  for t in types {
+    register(type: t)
   }
 }

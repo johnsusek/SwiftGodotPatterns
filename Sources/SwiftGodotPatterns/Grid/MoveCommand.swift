@@ -19,5 +19,5 @@ public struct MoveCommand: Command {
 
   /// Applies the move by invoking `move(to)`.
   /// - Precondition: `validate()` previously returned `.ok`.
-  public func apply() { move(to) }
+  public func execute() { move(to) }
 }

@@ -1,6 +1,6 @@
 /// A timer-driven generator of objects at a target rate.
 ///
-/// `Spawner` counts down in `tick(delta:)` and, when its internal clock
+/// `SpawnSystem` counts down in `tick(delta:)` and, when its internal clock
 /// reaches zero, it creates or acquires one object, fires hooks in a
 /// well-defined order, and schedules the next spawn using `rate` and `jitter`.
 ///
@@ -18,11 +18,11 @@
 ///   - `true` -> on the very next `tick` call,
 ///   - `false` -> after one full (possibly jittered) interval.
 /// - Large `delta` values produce **at most one** spawn per `tick` call; missed
-///   intervals do not “catch up” with multiple spawns.
+///   intervals do not "catch up" with multiple spawns.
 ///
 /// ### Example
 /// ```swift
-/// let spawner = Spawner<Bullet>()
+/// let spawner = SpawnSystem<Bullet>()
 /// spawner.rate = 5           // 5 bullets/sec
 /// spawner.jitter = 0.05      // small timing variance
 /// spawner.make = { Bullet() } // or spawner.usePool(pool.acquire)
@@ -38,7 +38,7 @@
 ///   spawner.tick(delta: delta)
 /// }
 /// ```
-public final class Spawner<T> {
+public final class SpawnSystem<T> {
   /// Target frequency in spawns per second.
   ///
   /// Values `<= 0` are treated as a very small positive rate internally to avoid

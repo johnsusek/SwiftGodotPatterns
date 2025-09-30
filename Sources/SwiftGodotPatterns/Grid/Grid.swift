@@ -126,9 +126,9 @@ public extension Grid {
 /// Multi-source, uniform-cost distance transform (Dijkstra) over a grid.
 ///
 /// `solve` treats each passable step as cost 1, starting from one or more goal cells
-/// and expanding outward (useful for “nearest goal” queries and flood-fills).
+/// and expanding outward (useful for "nearest goal" queries and flood-fills).
 public enum Dijkstra {
-  /// A large sentinel distance used as “infinity.”
+  /// A large sentinel distance used as "infinity."
   public static let inf = Int.max / 4
 
   /// Computes shortest path distances from any of `goals` to all reachable cells.
