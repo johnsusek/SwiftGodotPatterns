@@ -15,12 +15,12 @@ Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftG
 
 ## Lifecycle
 
-### 📦 ObjectPool (+ PoolScope)
+### 📦 ObjectPool (+ PoolLease)
 
-Pool any `Object` subclass. `PoolScope` does scoped acquire/release.
+Pool any `Object` subclass. `PoolLease` does scoped acquire/release.
 
 ```swift
-final class Bullet: Node2D, PoolItem {
+final class Bullet: Node2D, PooledObject {
   func onAcquire() { visible = true }
   func onRelease() { visible = false; position = .zero }
 }
@@ -30,18 +30,18 @@ pool.preload(64)
 
 if let b = pool.acquire() { /* attach & use */ pool.release(b) }
 
-PoolScope(pool).using { b in
+PoolLease(pool).using { b in
   scene.addChild(node: b)
   // released automatically at the end of the closure
 }
 ```
 
-### 🌱 Spawner
+### 🌱 SpawnSystem
 
 Rate-based generator.
 
 ```swift
-let spawner = Spawner<Bullet>()
+let spawner = SpawnSystem<Bullet>()
 spawner.rate = 5
 spawner.jitter = 0.05
 spawner.usePool(pool.acquire) // or spawner.make = Bullet.init
@@ -50,7 +50,7 @@ spawner.reset()
 func _process(delta: Double) { spawner.tick(delta: delta) }
 ```
 
-### 🧹 AutoDespawn2D
+### 🧹 LifetimeComponent2D
 
 Time/offscreen-driven despawn. Attach as a child helper.
 
@@ -58,7 +58,7 @@ Time/offscreen-driven despawn. Attach as a child helper.
 @Godot
 final class Bullet: Node2D {
   override func _ready() {
-    let d = AutoDespawn2D()
+    let d = LifetimeComponent2D()
     d.seconds = 2.0
     d.offscreen = true
     addChild(node: d)
@@ -68,50 +68,18 @@ final class Bullet: Node2D {
 
 ## Architecture
 
-### 📣 EventHub & GlobalEventBuses
+### 📣 EventBus & ServiceLocator
 
 Type-safe pub/sub with per-event and batch handlers.
 
 ```swift
 enum GameEvent { case spawned, died }
 
-let bus = GlobalEventBuses.hub(GameEvent.self)
+let bus = ServiceLocator.resolve(GameEvent.self)
 let token = bus.onEach { e in print("event:", e) }
 
 bus.publish(.spawned)
 bus.cancel(token)
-```
-
-### 🧩 Store (state/intent/event + mutations)
-
-Tiny ECS/Redux-ish store with middleware and event bus.
-
-```swift
-struct State { var score = 0 } // Your game state
-enum Intent { case add(Int) } // "What we want to do" (inputs to the Store)
-enum Event { case scoreChanged(Int) } // "What actually happened" (outputs from mutations)
-
-let store = Store<State, Intent, Event>(state: .init())
-
-// Register a mutator: consumes intents, mutates state, emits events.
-store.register(.init { intents, state, events in
-  for intent in intents {
-    guard case let .add(amount) = intent else { continue }
-    state.score += amount // Mutate state
-    events.append(.scoreChanged(state.score)) // Broadcast what happened
-  }
-})
-
-// Subscribe to events (returns a token you can cancel later).
-let token = store.events.onEach { event in
-  switch event {
-  case let .scoreChanged(newScore):
-    GD.print("scoreChanged ->", newScore) // Update node properties, etc.
-  }
-}
-
-// Using the Store
-store.commit(.add(10))
 ```
 
 ## Sprites
