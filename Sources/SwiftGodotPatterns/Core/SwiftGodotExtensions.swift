@@ -1,6 +1,7 @@
 import SwiftGodot
 
 /// Convenience extensions for Godot types.
+// TODO: Put some of these into a SwiftGodot PR
 
 public extension Vector2 {
   /// Convenience initializer.
@@ -20,6 +21,16 @@ public extension Vector2 {
   @inlinable static func *= (lhs: inout Self, rhs: Float) { lhs = lhs * rhs }
   @inlinable static func *= <S: BinaryFloatingPoint>(lhs: inout Self, rhs: S) { lhs = lhs * rhs }
   @inlinable static func *= <S: BinaryInteger>(lhs: inout Self, rhs: S) { lhs = lhs * rhs }
+}
+
+extension NodePath: @retroactive @unchecked Sendable {
+  public func toSendable() -> String { description }
+  public static func fromSendable(_ value: String) -> NodePath { NodePath(value) }
+}
+
+extension Vector2: @retroactive @unchecked Sendable {
+  public func toSendable() -> (Float, Float) { (x, y) }
+  public static func fromSendable(_ value: (Float, Float)) -> Vector2 { Vector2(value.0, value.1) }
 }
 
 /// Make Vector2 codable.
