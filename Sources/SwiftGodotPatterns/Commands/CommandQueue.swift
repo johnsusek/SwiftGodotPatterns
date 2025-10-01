@@ -29,6 +29,6 @@ public final class CommandQueue {
       }
     }
 
-    items = next.isEmpty ? [] : next
+    items = next
   }
 }
