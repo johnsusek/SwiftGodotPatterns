@@ -27,6 +27,8 @@ final class Resource<R: SwiftGodot.Resource>: _AutoBindProp {
   var projectedValue: R? { loaded }
 
   func _bind(host _: Node) {
+    if loaded != nil { return }
+
     guard let resolved = ResourceLoader.load(path: path) as? R else {
       GD.pushWarning("Failed to load \(R.self) at \(path)")
       loaded = nil

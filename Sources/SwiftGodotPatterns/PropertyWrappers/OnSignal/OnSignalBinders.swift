@@ -18,6 +18,8 @@ final class _SignalBinder0<T: Object>: _AutoBindProp {
   /// Handler invoked when the signal emits. Receives the typed sender.
   let f: (T) -> Void
 
+  private var didConnect = false
+
   /// Creates a zero-arg signal binder.
   init(path: String, keyPath: KeyPath<T, SimpleSignal>, flags: Object.ConnectFlags, handler: @escaping (T) -> Void) {
     self.path = path; kp = keyPath; self.flags = flags; f = handler
@@ -25,8 +27,10 @@ final class _SignalBinder0<T: Object>: _AutoBindProp {
 
   /// Resolves the sender and connects the handler to the signal.
   func _bind(host: Node) {
+    if didConnect { return }
     guard let sender = host.getNode(path) as? T else { return }
     _ = sender[keyPath: kp].connect(flags: flags) { self.f(sender) }
+    didConnect = true
   }
 }
 
@@ -45,6 +49,8 @@ final class _SignalBinder1<T: Object, A: _GodotBridgeable>: _AutoBindProp {
   /// Handler invoked as `f(sender, a0)`.
   let f: (T, A) -> Void
 
+  private var didConnect = false
+
   /// Creates a one-arg signal binder.
   init(path: String, keyPath: KeyPath<T, SignalWithArguments<A>>, flags: Object.ConnectFlags, handler: @escaping (T, A) -> Void) {
     self.path = path; kp = keyPath; self.flags = flags; f = handler
@@ -52,8 +58,10 @@ final class _SignalBinder1<T: Object, A: _GodotBridgeable>: _AutoBindProp {
 
   /// Resolves the sender and connects the handler to the signal.
   func _bind(host: Node) {
+    if didConnect { return }
     guard let sender = host.getNode(path) as? T else { return }
     _ = sender[keyPath: kp].connect(flags: flags) { a0 in self.f(sender, a0) }
+    didConnect = true
   }
 }
 
@@ -72,6 +80,8 @@ final class _SignalBinder2<T: Object, A: _GodotBridgeable, B: _GodotBridgeable>:
   /// Handler invoked as `f(sender, a0, a1)`.
   let f: (T, A, B) -> Void
 
+  private var didConnect = false
+
   /// Creates a two-arg signal binder.
   init(path: String, keyPath: KeyPath<T, SignalWithArguments<A, B>>, flags: Object.ConnectFlags, handler: @escaping (T, A, B) -> Void) {
     self.path = path; kp = keyPath; self.flags = flags; f = handler
@@ -79,8 +89,10 @@ final class _SignalBinder2<T: Object, A: _GodotBridgeable, B: _GodotBridgeable>:
 
   /// Resolves the sender and connects the handler to the signal.
   func _bind(host: Node) {
+    if didConnect { return }
     guard let sender = host.getNode(path) as? T else { return }
     _ = sender[keyPath: kp].connect(flags: flags) { a0, a1 in self.f(sender, a0, a1) }
+    didConnect = true
   }
 }
 
@@ -99,6 +111,8 @@ final class _SignalBinder3<T: Object, A: _GodotBridgeable, B: _GodotBridgeable, 
   /// Handler invoked as `f(sender, a0, a1, a2)`.
   let f: (T, A, B, C) -> Void
 
+  private var didConnect = false
+
   /// Creates a three-arg signal binder.
   init(path: String, keyPath: KeyPath<T, SignalWithArguments<A, B, C>>, flags: Object.ConnectFlags, handler: @escaping (T, A, B, C) -> Void) {
     self.path = path; kp = keyPath; self.flags = flags; f = handler
@@ -106,7 +120,9 @@ final class _SignalBinder3<T: Object, A: _GodotBridgeable, B: _GodotBridgeable, 
 
   /// Resolves the sender and connects the handler to the signal.
   func _bind(host: Node) {
+    if didConnect { return }
     guard let sender = host.getNode(path) as? T else { return }
     _ = sender[keyPath: kp].connect(flags: flags) { a0, a1, a2 in self.f(sender, a0, a1, a2) }
+    didConnect = true
   }
 }

@@ -42,6 +42,8 @@ final class Children<T: Node>: _AutoBindProp {
   var wrappedValue: [T] { list }
 
   func _bind(host: Node) {
+    list.removeAll()
+
     func collect(from n: Node) {
       for c in n.getChildren() {
         if let t = c as? T { list.append(t) }
