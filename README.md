@@ -20,6 +20,15 @@ Call `bindProps()` once in `_ready` to use.
 
 ### Node Query
 
+#### 🧑‍🧒 Child
+```swift
+final class Menu: Node {
+  @Child var button: Button
+
+  override func _ready() { bindProps() }
+}
+```
+
 #### 🧑‍🧒‍🧒 Children
 ```swift
 final class Menu: Node {
@@ -73,9 +82,7 @@ final class MainMenu: Control {
     accept(name: String(text))
   }
 
-  override func _ready() {
-    bindProps()
-  }
+  override func _ready() { bindProps() }
 }
 ```
 
@@ -104,10 +111,7 @@ final class ScoreView: Node {
 final class Logo: Sprite2D {
   @Resource<Texture2D>("res://icon.png") var icon: Texture2D?
 
-  override func _ready() {
-    bindProps()
-    texture = icon
-  }
+  override func _ready() { bindProps() }
 }
 ```
 
