@@ -14,10 +14,10 @@ public struct PressState {
   /// `true` while the control is held on this frame.
   public var down = false
 
-  /// `true` only on the frame where `down` transitions `false → true`.
+  /// `true` only on the frame where `down` transitions `false -> true`.
   public var pressed = false
 
-  /// `true` only on the frame where `down` transitions `true → false`.
+  /// `true` only on the frame where `down` transitions `true -> false`.
   public var released = false
 
   /// Advances this state machine using the current raw state.

@@ -46,7 +46,7 @@ public struct PhaseSpec<Kind: Hashable> {
 /// ### Example
 /// ```swift
 /// let runner = PhaseRunner<StandardPhase>()
-/// runner.onEnter  = { print("→ \($0)") }
+/// runner.onEnter  = { print("-> \($0)") }
 /// runner.onExit   = { print("← \($0)") }
 /// runner.onFinish = { print("✔ finished") }
 /// runner.begin([.startup(0.1), .active(0.3), .recovery(0.2)])
@@ -161,7 +161,7 @@ public final class PhaseRunner<Kind: Hashable> {
   }
 }
 
-/// A tiny convenience enum for fighting-game style phases: startup → active → recovery.
+/// A tiny convenience enum for fighting-game style phases: startup -> active -> recovery.
 public enum StandardPhase { case startup, active, recovery }
 
 public extension PhaseSpec where Kind == StandardPhase {
