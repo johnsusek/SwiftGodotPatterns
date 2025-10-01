@@ -13,6 +13,117 @@ Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftG
 <br>
 <br>
 
+## Property Wrappers
+
+Call `bindProps()` once in `_ready` to use.
+
+
+### Node Query
+
+#### 🧑‍🧒‍🧒 Children
+```swift
+final class Menu: Node {
+  @Children var buttons: [Button] // direct children
+  @Children("Cells", deep: true) var tiles: [Node2D] // deep search under "Cells"
+
+  override func _ready() { bindProps() }
+}
+```
+
+#### 🧑‍🧑‍🧒 Ancestors
+
+```swift
+final class HealthBar: Node {
+  @Ancestor<Node2D> var owner2D: Node2D?
+
+  override func _ready() {
+    bindProps()
+    owner2D?.show()
+  }
+}
+```
+
+#### 👯 Groups
+
+```swift
+final class EnemyHUD: Node {
+  @Group("enemies") var enemies: [CharacterBody2D]
+  @Group(["interactables", "doors"]) var interactables: [Node]
+
+  override func _ready() {
+    bindProps()
+    enemies.forEach { _ = $0.isVisibleInTree() }
+    let fresh = $enemies() // re-query later
+    GD.print("Enemy count: \(fresh.count)")
+  }
+}
+```
+
+### 📡 Signals
+
+```swift
+final class MainMenu: Control {
+  @OnSignal("PlayButton", \Button.pressed)
+  func onPlay(_ button: Button) {
+    startGame()
+  }
+
+  @OnSignal("NameField", \LineEdit.textSubmitted)
+  func onSubmit(_ line: LineEdit, _ text: StringName) {
+    accept(name: String(text))
+  }
+
+  override func _ready() {
+    bindProps()
+  }
+}
+```
+
+### 📍 Service Locator
+
+```swift
+enum GameEvent { case playerDied, score(Int) }
+
+final class ScoreView: Node {
+  @Service<GameEvent> var events: EventBus<GameEvent>?
+
+  override func _ready() {
+    bindProps()
+    events?.subscribe(self) { [weak self] evt in
+      if case let .score(s) = evt { self?.updateLabel(s) }
+    }
+  }
+
+  private func updateLabel(_ value: Int) { /* ... */ }
+}
+```
+
+### 🍓 Resources
+
+```swift
+final class Logo: Sprite2D {
+  @Resource<Texture2D>("res://icon.png") var icon: Texture2D?
+
+  override func _ready() {
+    bindProps()
+    texture = icon
+  }
+}
+```
+
+### 🗃️ Autoload
+
+```swift
+final class Overlay: CanvasLayer {
+  @Autoload<GameState>("GameState") var gameState: GameState?
+
+  override func _ready() {
+    bindProps()
+    if let gs = gameState { GD.print("level: \(gs.level)") }
+  }
+}
+```
+
 ## Lifecycle
 
 ### 📦 ObjectPool (+ PoolLease)
