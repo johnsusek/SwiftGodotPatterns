@@ -56,3 +56,39 @@ final class Children<T: Node>: _AutoBindProp {
     }
   }
 }
+
+/// Resolves a single child node of a given type, optionally under a sub-path.
+///
+/// Use this when you want a typed reference to a specific child node without manual `getNode()` plumbing.
+/// The node is populated when `bindProps()` runs.
+///
+/// Example:
+/// ```swift
+/// final class Player: Node {
+///   @Child("Sprite") var sprite: Sprite2D?
+///
+///   override func _ready() {
+///     bindProps()
+///     sprite?.visible = false
+///   }
+/// }
+/// ```
+@propertyWrapper
+final class Child<T: Node>: _AutoBindProp {
+  private(set) var node: T?
+  private let path: String?
+
+  init(_ path: String? = nil) {
+    self.path = path
+  }
+
+  var wrappedValue: T? { node }
+
+  func _bind(host: Node) {
+    if let p = path, let n = host.getNode(p) as? T {
+      node = n
+    } else if let n = host as? T {
+      node = n
+    }
+  }
+}
