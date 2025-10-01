@@ -8,13 +8,10 @@ public struct TargetingSpec: Codable, Hashable, Sendable {
   public var kind: TargetKind
   /// Max selection range in world units, when relevant.
   public var range: Double?
-  /// Area of effect radius in world units, when relevant.
-  public var radius: Double?
 
   /// Creates a targeting specification.
-  public init(kind: TargetKind, range: Double? = nil, radius: Double? = nil) {
+  public init(kind: TargetKind, range: Double? = nil) {
     self.kind = kind
     self.range = range
-    self.radius = radius
   }
 }
