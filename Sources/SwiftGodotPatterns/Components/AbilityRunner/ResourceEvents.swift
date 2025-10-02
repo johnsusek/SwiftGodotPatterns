@@ -33,6 +33,12 @@ public struct ResourceSetEvent {
   public let kind: String
   /// The new absolute value for the resource.
   public let value: Int
+
+  public init(owner: NodePath, kind: String, value: Int) {
+    self.owner = owner
+    self.kind = kind
+    self.value = value
+  }
 }
 
 /// Applies multiple additive changes to resources for a specific owner in a single message.
