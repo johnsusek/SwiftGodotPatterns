@@ -27,26 +27,26 @@ import SwiftGodot
 /// }
 /// ```
 @propertyWrapper
-final class Group<T: Node>: _AutoBindProp {
+public final class Group<T: Node>: _AutoBindProp {
   private let names: [StringName]
   private weak var hostNode: Node?
   private var cached: [T] = []
 
   /// Query a single group.
-  init(_ name: String) {
+  public init(_ name: String) {
     names = [StringName(name)]
   }
 
   /// Query the union of multiple groups.
-  init(_ names: [String]) {
+  public init(_ names: [String]) {
     self.names = names.map { StringName($0) }
   }
 
   /// The last queried result. Populated by `bindProps()` and updated by `$property()`.
-  var wrappedValue: [T] { cached }
+  public var wrappedValue: [T] { cached }
 
   /// Call `$property()` to refresh and *return* the latest result in one step.
-  var projectedValue: () -> [T] {
+  public var projectedValue: () -> [T] {
     { [weak self] in self?.refresh(); return self?.cached ?? [] }
   }
 

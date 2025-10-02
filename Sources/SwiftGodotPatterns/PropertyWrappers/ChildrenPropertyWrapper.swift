@@ -29,17 +29,17 @@ import SwiftGodot
 /// }
 /// ```
 @propertyWrapper
-final class Children<T: Node>: _AutoBindProp {
+public final class Children<T: Node>: _AutoBindProp {
   private(set) var list: [T] = []
   private let path: String?
   private let deep: Bool
 
-  init(_ path: String? = nil, deep: Bool = false) {
+  public init(_ path: String? = nil, deep: Bool = false) {
     self.path = path
     self.deep = deep
   }
 
-  var wrappedValue: [T] { list }
+  public var wrappedValue: [T] { list }
 
   func _bind(host: Node) {
     list.removeAll()
@@ -76,15 +76,15 @@ final class Children<T: Node>: _AutoBindProp {
 /// }
 /// ```
 @propertyWrapper
-final class Child<T: Node>: _AutoBindProp {
+public final class Child<T: Node>: _AutoBindProp {
   private(set) var node: T?
   private let path: String?
 
-  init(_ path: String? = nil) {
+  public init(_ path: String? = nil) {
     self.path = path
   }
 
-  var wrappedValue: T? { node }
+  public var wrappedValue: T? { node }
 
   func _bind(host: Node) {
     if let p = path, let n = host.getNode(p) as? T {

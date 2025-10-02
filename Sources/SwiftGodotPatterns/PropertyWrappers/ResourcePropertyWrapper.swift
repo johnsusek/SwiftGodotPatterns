@@ -17,14 +17,14 @@ import SwiftGodot
 /// }
 /// ```
 @propertyWrapper
-final class Resource<R: SwiftGodot.Resource>: _AutoBindProp {
+public final class Resource<R: SwiftGodot.Resource>: _AutoBindProp {
   private var loaded: R?
   private let path: String
 
-  init(_ path: String) { self.path = path }
+  public init(_ path: String) { self.path = path }
 
-  var wrappedValue: R? { loaded }
-  var projectedValue: R? { loaded }
+  public var wrappedValue: R? { loaded }
+  public var projectedValue: R? { loaded }
 
   func _bind(host _: Node) {
     if loaded != nil { return }

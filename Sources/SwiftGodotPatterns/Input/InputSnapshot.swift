@@ -39,7 +39,7 @@ public struct PressState {
 ///
 /// `InputSnapshot` polls a set of Godot action names each frame using
 /// `Input.isActionPressed`, storing a ``PressState`` per action (keyed by
-/// `StringName`). Read convenience accessors like ``down(_:)``/``pressed(_:)``/``released(_:)``
+/// `StringName`). Read convenience accessors like ``isDown(_:)``/``wasPressed(_:)``/``wasReleased(_:)``
 /// after calling ``poll(_:)``.
 ///
 /// ### Usage

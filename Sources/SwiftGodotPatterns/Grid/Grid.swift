@@ -50,10 +50,6 @@ public protocol Grid: Codable {
 
 public extension Grid {
   /// Returns whether `p` is inside the grid bounds.
-  ///
-  /// - Parameter p: Cell coordinate to test.
-  /// - Returns: `true` if `0 ≤ p.x < w` and `0 ≤ p.y < h`.
-  /// - Complexity: O(1).
   func inside(_ p: GridPos) -> Bool { p.x >= 0 && p.y >= 0 && p.x < size.w && p.y < size.h }
 
   // Returns the neighbor in the given direction, or nil if out of bounds.
@@ -68,8 +64,6 @@ public extension Grid {
 
   /// Returns the 4-connected neighbors (cardinals) inside the grid.
   ///
-  /// - Parameter p: Center cell.
-  /// - Returns: Up to four positions (left, right, up, down) filtered to grid bounds.
   /// - Example:
   ///   ```swift
   ///   let grid = Grid(3, 3)
@@ -82,10 +76,6 @@ public extension Grid {
   }
 
   /// Returns the 8-connected neighbors (cardinals + diagonals) inside the grid.
-  ///
-  /// - Parameter p: Center cell.
-  /// - Returns: Up to eight positions filtered to grid bounds.
-  /// - Note: This includes diagonals use `neighbors4` to avoid diagonal motion.
   func neighbors8(_ p: GridPos) -> [GridPos] {
     var r: [GridPos] = []
 
@@ -102,24 +92,12 @@ public extension Grid {
   }
 
   /// Converts a cell coordinate to a Godot world position at the center of the tile.
-  ///
-  /// - Parameters:
-  ///   - p: Cell coordinate.
-  ///   - tile: Tile size in world units.
-  /// - Returns: A `Vector2` centered in the tile: `(p.x + 0.5, p.y + 0.5) * tile`.
   func toWorld(_ p: GridPos) -> Vector2 { Vector2(Float(p.x) * tileSize + tileSize * 0.5, Float(p.y) * tileSize + tileSize * 0.5) }
 
   /// Convenience without using GridPos
   func toWorld(_ x: Int, _ y: Int) -> Vector2 { toWorld(GridPos(x: x, y: y)) }
 
   /// Converts a world position to the containing cell coordinate.
-  ///
-  /// - Parameters:
-  ///   - v: World position.
-  ///   - tile: Tile size in world units.
-  /// - Returns: The floor-divided cell index containing `v`.
-  /// - Warning: No bounds check is performed
-  //  use `inside(_:)` if needed.
   func toCell(_ v: Vector2) -> GridPos { GridPos(x: Int(floor(v.x / tileSize)), y: Int(floor(v.y / tileSize))) }
 }
 
@@ -132,22 +110,6 @@ public enum Dijkstra {
   public static let inf = Int.max / 4
 
   /// Computes shortest path distances from any of `goals` to all reachable cells.
-  ///
-  /// - Parameters:
-  ///   - grid: Grid providing neighborhood topology.
-  ///   - passable: Predicate determining if a cell may be traversed.
-  ///   - goals: One or more seed cells. Non-passable goals are ignored.
-  ///   - diagonal: If `true`, uses 8-connected neighbors
-  //  otherwise 4-connected.
-  /// - Returns: A dictionary mapping each reachable cell to its integer distance (0 at goals).
-  /// - Example:
-  ///   ```swift
-  ///   let grid = Grid(10, 10)
-  ///   let walls: Set<GridPos> = []
-  ///   let dist = Dijkstra.solve(grid: grid, passable: { !walls.contains($0) }, goals: [GridPos(x: 5, y: 5)])
-  ///   dist[GridPos(x: 5, y: 5)] == 0
-  ///   ```
-  /// - Complexity: O(V + E) for the explored region (linear in reachable cells and edges).
   public static func solve(grid: Grid,
                            passable: (GridPos) -> Bool,
                            goals: [GridPos],

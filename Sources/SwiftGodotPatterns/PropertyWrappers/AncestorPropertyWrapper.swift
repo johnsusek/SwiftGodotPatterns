@@ -16,14 +16,16 @@ import SwiftGodot
 /// }
 /// ```
 @propertyWrapper
-final class Ancestor<T: Node>: _AutoBindProp {
+public final class Ancestor<T: Node>: _AutoBindProp {
   private var ref: T?
 
-  var wrappedValue: T? {
+  public init() {}
+
+  public var wrappedValue: T? {
     return ref
   }
 
-  var projectedValue: T? { ref }
+  public var projectedValue: T? { ref }
 
   func _bind(host: Node) {
     var cur = host.getParent()

@@ -13,14 +13,14 @@ import SwiftGodot
 /// }
 /// ```
 @propertyWrapper
-final class Autoload<T: Node>: _AutoBindProp {
+public final class Autoload<T: Node>: _AutoBindProp {
   private var ref: T?
   private let name: String
 
-  init(_ name: String) { self.name = name }
+  public init(_ name: String) { self.name = name }
 
-  var wrappedValue: T? { ref }
-  var projectedValue: T? { ref }
+  public var wrappedValue: T? { ref }
+  public var projectedValue: T? { ref }
 
   func _bind(host _: Node) {
     let tree = Engine.getMainLoop() as? SceneTree

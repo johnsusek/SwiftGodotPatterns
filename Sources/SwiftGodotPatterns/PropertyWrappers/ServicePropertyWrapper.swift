@@ -24,11 +24,13 @@ import SwiftGodot
 /// }
 /// ```
 @propertyWrapper
-final class Service<E>: _AutoBindProp {
+public final class Service<E>: _AutoBindProp {
   private var bus: EventBus<E>?
 
-  var wrappedValue: EventBus<E>? { bus }
-  var projectedValue: EventBus<E>? { bus }
+  public init() {}
+
+  public var wrappedValue: EventBus<E>? { bus }
+  public var projectedValue: EventBus<E>? { bus }
 
   func _bind(host _: Node) {
     bus = ServiceLocator.resolve(E.self)

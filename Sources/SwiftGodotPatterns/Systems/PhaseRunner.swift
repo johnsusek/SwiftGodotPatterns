@@ -1,4 +1,4 @@
-/// A single, timed phase in a sequence executed by ``PhaseRunner``.
+/// A single, timed phase in a sequence executed by ``PhaseMachine``.
 ///
 /// `PhaseSpec` pairs a domain-specific `Kind` (often an enum)
 /// with a duration in seconds. Use it to describe the schedule
@@ -32,7 +32,7 @@ public struct PhaseSpec<Kind: Hashable> {
 
 /// Executes a deterministic sequence of timed phases, advancing via ``tick(_:)``.
 ///
-/// `PhaseRunner` is a lightweight, frame-agnostic state machine. You describe
+/// `PhaseMachine` is a lightweight, frame-agnostic state machine. You describe
 /// a sequence with an array of ``PhaseSpec`` values and call ``begin(_:)``.
 /// Each call to ``tick(_:)`` advances time; transitions trigger the `onEnter`,
 /// `onExit`, and `onFinish` callbacks synchronously during the call.
@@ -45,7 +45,7 @@ public struct PhaseSpec<Kind: Hashable> {
 ///
 /// ### Example
 /// ```swift
-/// let runner = PhaseRunner<StandardPhase>()
+/// let runner = PhaseMachine<StandardPhase>()
 /// runner.onEnter  = { print("-> \($0)") }
 /// runner.onExit   = { print("← \($0)") }
 /// runner.onFinish = { print("✔ finished") }
@@ -56,7 +56,7 @@ public struct PhaseSpec<Kind: Hashable> {
 /// ```
 ///
 /// - SeeAlso: ``PhaseSpec``, ``StandardPhase``.
-public final class PhaseRunner<Kind: Hashable> {
+public final class PhaseMachine<Kind: Hashable> {
   /// The execution state of the runner.
   public enum State {
     /// No sequence is active.

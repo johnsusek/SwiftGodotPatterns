@@ -6,45 +6,28 @@ import Foundation
 /// with `start(in:)`; subsequent changes use `transition(to:)`. Drive
 /// per-frame behavior by calling `update(delta:)`.
 ///
-/// - Important: The machine is inert until `start(in String:)` is called.
-/// - Note: Transitions to the current state are ignored (no-ops).
-/// - Note: `start(in String:)` calls **only** the destination state's `onEnter`.
-///   `transition(to:)` calls `old.onExit`, then the machine-level `onChange`,
-///   then `new.onEnter`, in that order.
-///
-/// ### Callback Ordering
-/// For `transition(from: A, to: B)`:
-/// 1. `A.onExit()`
-/// 2. `onChange("A", "B")`
-/// 3. `B.onEnter()`
-///
 /// ### Usage
 /// ```swift
-/// enum Mode: String { case idle, move, attack }
-///
 /// let sm = StateMachine()
 ///
-/// sm.add(Mode.idle.rawValue, .init(
+/// sm.add("idle", .init(
 ///   onEnter: { print("idle enter") },
 ///   onUpdate: { dt in /* ... */ }
 /// ))
 ///
-/// sm.add(Mode.move.rawValue, .init(onEnter: { print("start moving") }))
-/// sm.add(Mode.attack.rawValue, .init(onExit: { print("attack done") }))
+/// sm.add("move", .init(onEnter: { print("start moving") }))
+/// sm.add("attack", .init(onExit: { print("attack done") }))
 ///
 /// sm.setOnChange(Mode.self) { from, to in
 ///   print("changed from \(from) to \(to)")
 /// }
 ///
-/// sm.start(in: Mode.idle.rawValue)
-/// sm.transition(to: Mode.move.rawValue)
-/// sm.update(delta: 1 / 60)
-/// ```
+/// // Later:
+/// sm.start(in: "idle")
+/// sm.transition(to: "move")
 ///
-/// ### Typed API (String-backed enums)
-/// Prefer the typed helpers in the extension when your states are a `RawRepresentable`
-/// enum with `String` raw values. See the ``StateMachine/setOnChange(_:_:)``
-/// overloads and typed `add/start/transition/inState/current(as:)`.
+/// sm.update(delta: 1 / 60) // put in your game loop
+/// ```
 public final class StateMachine {
   /// Registry of all known states keyed by name.
   private var states: [String: StateMachine.State] = [:]
@@ -89,11 +72,6 @@ public final class StateMachine {
   ///
   /// - Important: If `name == current`, this is a no-op.
   /// - Parameter name: Destination state. If it doesn't exist, this is a no-op.
-  ///
-  /// The ordering of callbacks is:
-  /// 1. `old.onExit`
-  /// 2. ``onChange``
-  /// 3. `new.onEnter`
   public func transition(to name: String) {
     if name == current { return }
     guard let next = states[name] else { return }
@@ -105,8 +83,6 @@ public final class StateMachine {
   }
 
   /// Invokes the `onUpdate` callback of the **current** state, if present.
-  ///
-  /// - Parameter delta: Time step (seconds).
   public func update(delta: Double) { states[current]?.onUpdate?(delta) }
 
   /// Container of callbacks for a single state.

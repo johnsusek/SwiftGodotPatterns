@@ -128,6 +128,153 @@ final class Overlay: CanvasLayer {
 }
 ```
 
+## Components
+
+
+### ❤️ HealthComponent2D
+
+```swift
+import SwiftGodot
+
+@Godot
+final class Enemy: Node2D {
+  @Child("Health") var health: HealthComponent2D?
+  @Service<DamageEvent> var bus: EventBus<DamageEvent>?
+
+  override func _ready() {
+    bindProps()
+    health?.max = 120
+    health?.onChanged = { value in GD.print("HP:", value) }
+    health?.onDied = { GD.print("Enemy died") }
+
+    // Simulate damage via the shared bus
+    bus.publish(.init(target: getPath(), amount: 15, element: nil))
+  }
+}
+```
+
+### 🧱 Hitbox2D
+
+```swift
+import SwiftGodot
+
+@Godot
+final class SpikeTrap: Node2D {
+  @Child var hitbox: Hitbox2D?
+
+  override func _ready() {
+    bindProps()
+    hitbox?.amount = 10
+    hitbox?.oncePerBody = true
+  }
+}
+```
+
+### 💨 Knockback2DComponent
+
+```swift
+import SwiftGodot
+
+@Godot
+final class Slime: Node2D {
+  @Child var knockback: Knockback2DComponent?
+  @Service<KnockbackEvent> var bus: EventBus<KnockbackEvent>?
+
+  override func _ready() {
+    bindProps()
+
+    // Fire a knockback at this slime
+    bus.publish(.init(
+      target: getPath(),
+      direction: Vector2.left,
+      distance: 64,
+      duration: 0.25
+    ))
+  }
+}
+```
+
+### 🎯 TargetScanner2D
+
+```swift
+import SwiftGodot
+
+@Godot
+final class Turret: Node2D {
+  @Child var scanner: TargetScanner2D?
+  @Service<TargetAcquired> var bus: EventBus<TargetAcquired>?
+
+  private var token: EventBus<TargetAcquired>.Token?
+
+  override func _ready() {
+    bindProps()
+    scanner?.targetGroups = ["Enemies"]
+    scanner?.pickNearest = true
+
+    token = bus?.onEach { [weak self] e in
+      guard let self, e.source == self.getPath() else { return }
+      GD.print("New target:", e.target)
+      // Rotate/aim here if desired.
+    }
+  }
+
+  override func _exitTree() {
+    if let token { bus?.cancel(token) }
+  }
+}
+```
+
+
+### 🌀 TweenOneShot
+
+```swift
+import SwiftGodot
+
+@Godot
+final class FXDemo: Node2D {
+  @Child var sprite: Sprite2D?
+
+  override func _ready() {
+    bindProps()
+
+    // Fade out
+    let fade = TweenOneShot.new()
+    addChild(node: fade)
+    _ = fade.fadeOut(sprite, duration: 0.25)
+
+    // Punch scale
+    let punch = TweenOneShot.new()
+    addChild(node: punch)
+    _ = punch.punchScale(self, amount: Vector2(0.2, 0.2), duration: 0.2)
+  }
+}
+```
+
+### 🏃 Velocity2DComponent
+
+```swift
+import SwiftGodot
+
+@Godot
+final class Mover: Node2D {
+  @Child var motion: Velocity2DComponent?
+
+  override func _ready() {
+    bindProps()
+    motion?.linearDamping = 6
+    motion?.maxSpeed = 300
+    motion?.acceleration = Vector2(800, 0) // accelerate right
+  }
+
+  // Example: tap to brake
+  override func _unhandledInput(event: InputEvent) {
+    if event.isActionPressed(action: "brake") {
+      motion?.acceleration = .zero
+    }
+  }
+}
+```
+
 ## Lifecycle
 
 ### 📦 ObjectPool (+ PoolLease)
@@ -266,58 +413,18 @@ hp.damage(200)  // HP: 80 -> 0, prints "You died!", then onDamaged(200)
 
 ```
 
-### 🧪 Stats & Effects
-
-Lightweight RPG stats with timed effects.
-
-```swift
-var stats = StatBlock(hp: 20, atk: 3, def: 1)
-
-struct Berserk: StatEffect {
-  let id = "berserk"
-  var remaining = 3
-
-  func modify(_ s: inout StatBlock) {
-    s.atk += 5
-  }
-}
-
-let bag = StatEffectBag()
-bag.add(Berserk())
-bag.apply(to: &stats) // stats.atk == 8
-bag.tick() // remaining -> 2
-```
-
 ### 🗡️ Phases (startup/active/recovery)
 
 Timeboxed phase runner.
 
 ```swift
 let phases: [PhaseSpec<StandardPhase>] = [.startup(0.2), .active(0.6), .recovery(0.3)]
-let runner = PhaseRunner<StandardPhase>()
+let runner = PhaseMachine<StandardPhase>()
 
 runner.onEnter = { if $0 == .active { attack() } }
 runner.begin(phases)
 
 func _process(delta: Double) { runner.tick(delta) }
-```
-
-### 🕒 TurnScheduler (ATB-style)
-
-Speed-based turn order.
-
-```swift
-struct Goblin: TurnActor {
-  let id: Int
-  let speed: Int
-  func takeTurn(_ c: TurnContext) { /* act using c.act(self) if needed */ }
-}
-
-let ts = TurnScheduler()
-ts.add(Goblin(id: 1, speed: 120))
-ts.add(Goblin(id: 2, speed: 80))
-
-func _process(delta: Double) { ts.tick() } // call every frame/tick
 ```
 
 ### 🔁 StateMachine
@@ -405,22 +512,6 @@ struct TileGrid: Grid {
 
 let grid = TileGrid(size: .init(w: 10, h: 8), walls: [GridPos(x: 3, y: 3)])
 let start = GridPos(x: 0, y: 0), goal = GridPos(x: 5, y: 4)
-
-// A*
-let path = AStar.find(grid: grid, start: start, goal: goal, passable: { grid.passable($0) })
-
-// Dijkstra (distance field from goals)
-let field = Dijkstra.solve(grid: grid, passable: { grid.passable($0) }, goals: [goal])
-
-// Roguelike FOV (shadowcasting)
-let fov = Fov.compute(map: { grid.passable($0) ? .open : .wall }, grid: grid, origin: start, radius: 6)
-
-// Tiny AI tasks
-var wander = Wander(pos: start, grid: grid, passable: { grid.passable($0) }, move: { pos = $0 })
-_ = wander.tick(dt: 0)
-var chase = ChaseDijkstra(pos: start, field: field, move: { pos = $0 }, grid: grid)
-_ = chase.tick(dt: 0)
-```
 
 ## 🧰 Utilities
 
