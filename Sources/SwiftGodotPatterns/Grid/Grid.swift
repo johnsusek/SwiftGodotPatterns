@@ -64,7 +64,7 @@ public extension Grid {
 
   /// Returns the 4-connected neighbors (cardinals) inside the grid.
   ///
-  /// - Example:
+  /// - Usage:
   ///   ```swift
   ///   let grid = Grid(3, 3)
   ///   grid.neighbors4(GridPos(x: 1, y: 1))  // 4 cells
@@ -99,46 +99,4 @@ public extension Grid {
 
   /// Converts a world position to the containing cell coordinate.
   func toCell(_ v: Vector2) -> GridPos { GridPos(x: Int(floor(v.x / tileSize)), y: Int(floor(v.y / tileSize))) }
-}
-
-/// Multi-source, uniform-cost distance transform (Dijkstra) over a grid.
-///
-/// `solve` treats each passable step as cost 1, starting from one or more goal cells
-/// and expanding outward (useful for "nearest goal" queries and flood-fills).
-public enum Dijkstra {
-  /// A large sentinel distance used as "infinity."
-  public static let inf = Int.max / 4
-
-  /// Computes shortest path distances from any of `goals` to all reachable cells.
-  public static func solve(grid: Grid,
-                           passable: (GridPos) -> Bool,
-                           goals: [GridPos],
-                           diagonal: Bool = false) -> [GridPos: Int]
-  {
-    var dist: [GridPos: Int] = [:]
-    var queue: [GridPos] = []
-
-    for g in goals where passable(g) {
-      dist[g] = 0
-      queue.append(g)
-    }
-
-    var head = 0
-
-    while head < queue.count {
-      let p = queue[head]
-      head += 1
-
-      let nd = (dist[p] ?? inf) + 1
-      let ns = diagonal ? grid.neighbors8(p) : grid.neighbors4(p)
-
-      for q in ns where passable(q) {
-        if nd < (dist[q] ?? inf) { dist[q] = nd
-          queue.append(q)
-        }
-      }
-    }
-
-    return dist
-  }
 }

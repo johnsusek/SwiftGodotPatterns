@@ -124,7 +124,7 @@ public final class ObjectPool<T: Object> {
 
 /// A convenience wrapper to use a pooled object within a closure.
 ///
-/// Example:
+/// ### Usage:
 /// ```swift
 /// let pool = Pool<Bullet>(factory: { Bullet() })
 /// pool.preload(64)

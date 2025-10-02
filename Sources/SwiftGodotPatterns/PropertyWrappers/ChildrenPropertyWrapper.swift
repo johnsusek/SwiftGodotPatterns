@@ -9,7 +9,7 @@ import SwiftGodot
 ///   - path: Optional relative path under the host from which to start the search.
 ///   - deep: If `true`, traverses descendants recursively otherwise only direct children are considered.
 ///
-/// ### Example: direct children
+/// ### Usage: direct children
 /// ```swift
 /// final class Menu: Node {
 ///   @Children var buttons: [Button]   // all Button children
@@ -21,7 +21,7 @@ import SwiftGodot
 /// }
 /// ```
 ///
-/// ### Example: scoped, deep search
+/// ### Usage: scoped, deep search
 /// ```swift
 /// final class Board: Node {
 ///   @Children("Cells", deep: true) var tiles: [Node2D]
@@ -64,7 +64,7 @@ public final class Children<T: Node>: _AutoBindProp {
 /// Use this when you want a typed reference to a specific child node without manual `getNode()` plumbing.
 /// The node is populated when `bindProps()` runs.
 ///
-/// Example:
+/// ### Usage:
 /// ```swift
 /// final class Player: Node {
 ///   @Child("Sprite") var sprite: Sprite2D?

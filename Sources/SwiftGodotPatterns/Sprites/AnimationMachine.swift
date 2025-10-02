@@ -83,6 +83,7 @@ public enum AnimRuleBuilder {
 /// ```swift
 /// When("Attack", play: "kick", loop: false)
 /// ```
+@_documentation(visibility: private)
 @inlinable public func When(_ state: String, play clip: String, loop: Bool = true) -> AnimRuleEntry {
   .when(state: state, play: .init(clip: clip, loop: loop))
 }
@@ -97,6 +98,7 @@ public enum AnimRuleBuilder {
 /// ```swift
 /// OnFinish("hurt", go: "Idle")
 /// ```
+@_documentation(visibility: private)
 @inlinable public func OnFinish(_ clip: String, go state: String) -> AnimRuleEntry {
   .onFinish(clip: clip, state: state)
 }
@@ -118,6 +120,7 @@ public enum AnimRuleBuilder {
 ///
 /// When(GState.attack, play: AClip.kick, loop: false)
 /// ```
+@_documentation(visibility: private)
 @inlinable public func When<S: RawRepresentable, C: RawRepresentable>(_ state: S, play clip: C, loop: Bool = true) -> AnimRuleEntry
   where S.RawValue == String, C.RawValue == String
 {
@@ -135,6 +138,7 @@ public enum AnimRuleBuilder {
 /// ```swift
 /// OnFinish(AClip.hurt, go: GState.idle)
 /// ```
+@_documentation(visibility: private)
 @inlinable public func OnFinish<C: RawRepresentable, S: RawRepresentable>(_ clip: C, go state: S) -> AnimRuleEntry
   where C.RawValue == String, S.RawValue == String
 {

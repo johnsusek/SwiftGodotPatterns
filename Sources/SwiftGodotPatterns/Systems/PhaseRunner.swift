@@ -161,7 +161,7 @@ public final class PhaseMachine<Kind: Hashable> {
   }
 }
 
-/// A tiny convenience enum for fighting-game style phases: startup -> active -> recovery.
+/// A tiny convenience enum for action game input phases: startup -> active -> recovery.
 public enum StandardPhase { case startup, active, recovery }
 
 public extension PhaseSpec where Kind == StandardPhase {

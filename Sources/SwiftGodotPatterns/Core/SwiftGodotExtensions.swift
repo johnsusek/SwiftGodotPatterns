@@ -78,7 +78,7 @@ public extension Node {
 
   /// Get all children of a specific type.
   ///
-  /// Example:
+  /// ### Usage:
   /// ```swift
   /// let sprites: [Sprite2D] = getChildren()
   /// ```
@@ -92,7 +92,7 @@ public extension Node {
 
   /// Get all parents of a specific type.
   ///
-  /// Example:
+  /// ### Usage:
   /// ```swift
   /// let dinoViews: [Dino] = getParents()
   /// ```
