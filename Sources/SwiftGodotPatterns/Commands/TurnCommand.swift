@@ -1,5 +1,5 @@
 /// A unit of work that must be validated before it is applied.
-public protocol Command {
+public protocol TurnCommand {
   /// Checks whether the command can be applied at this time.
   func validate() -> CmdResult
 

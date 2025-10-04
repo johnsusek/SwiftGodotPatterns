@@ -98,7 +98,6 @@ public final class AbilityRunnerComponent: Node2D {
   /// Binds property wrappers and enables processing to tick cooldowns.
   override public func _ready() {
     bindProps()
-    setProcess(enable: true)
   }
 
   /// Advances cooldown timers each frame.

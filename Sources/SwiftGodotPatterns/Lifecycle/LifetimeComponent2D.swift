@@ -80,7 +80,6 @@ public final class LifetimeComponent2D: Node {
       t.onTimeout = { [weak self] in self?.despawn() }
       t.start()
       timer = t
-      setProcess(enable: true)
     }
 
     if offscreen {
@@ -91,7 +90,6 @@ public final class LifetimeComponent2D: Node {
       addChild(node: n) // child of this helper inherits host's canvas via parent chain
       notifier = n
       if offscreenDelay > 0 { offscreenTimer = GameTimer(duration: offscreenDelay, repeats: false) }
-      setProcess(enable: true)
     }
   }
 

@@ -71,7 +71,6 @@ public final class TargetScanner2D: Area2D {
     monitorable = true
     _ = bodyEntered.connect { [weak self] body in self?.onBody(body) }
     _ = bodyExited.connect { [weak self] body in self?.onBodyExit(body) }
-    setProcess(enable: true)
   }
 
   /// Prunes dead candidates and publishes a `TargetAcquired` event when the

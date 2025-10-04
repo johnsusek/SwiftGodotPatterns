@@ -3,7 +3,7 @@
 /// This command delegates environment knowledge to two closures:
 /// `passable` determines if a cell can be entered, and `move` performs
 /// the actual position update for the owning entity.
-public struct MoveCommand: Command {
+public struct MoveCommand: TurnCommand {
   /// Source position of the move.
   public let from: GridPos
   /// Destination position of the move.
