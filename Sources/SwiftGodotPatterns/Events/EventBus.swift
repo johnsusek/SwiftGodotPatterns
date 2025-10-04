@@ -84,3 +84,28 @@ public final class EventBus<Event> {
     }
   }
 }
+
+/// Convenience extensions for logging events to MsgLog.
+public extension EventBus {
+  /// Logs every event to MsgLog until the returned token is cancelled.
+  @discardableResult
+  func tapLog(level: MsgLog.Level = .debug, name: String? = nil, format: ((Event) -> String)? = nil) -> Token {
+    onEach { event in
+      let body = format?(event) ?? String(describing: event)
+      MsgLog.shared.write("[\(name ?? "EventBus")] \(body)", level: level)
+    }
+  }
+
+  /// Logs batch publishes; logs a header then each element.
+  @discardableResult
+  func tapBatchLog(level: MsgLog.Level = .debug, name: String? = nil, format: ((Event) -> String)? = nil) -> Token {
+    onBatch { batch in
+      guard !batch.isEmpty else { return }
+      MsgLog.shared.write("[\(name ?? "EventBus")] batch x\(batch.count)", level: level)
+      for event in batch {
+        let body = format?(event) ?? String(describing: event)
+        MsgLog.shared.write("  \(body)", level: level)
+      }
+    }
+  }
+}
