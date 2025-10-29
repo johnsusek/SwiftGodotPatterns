@@ -17,8 +17,6 @@ Game Programming Patterns for SwiftGodot
 
 ### Gameplay
 
-- ``Cooldown``
-- ``GameTimer``
 - ``Grid``
 - ``Health``
 - ``HealthComponent2D``
@@ -36,7 +34,6 @@ Game Programming Patterns for SwiftGodot
 ### Input
 
 - ``InputSnapshot``
-- ``PressState``
 
 ### Resources
 
@@ -68,12 +65,7 @@ Game Programming Patterns for SwiftGodot
 - ``PooledObject``
 - ``PoolLease``
 - ``LifetimeComponent2D``
-- ``SpawnSystem``
-
-### State Machines
-
-- ``PhaseMachine``
-- ``StateMachine``
+- ``Spawner``
 
 ### Utilities
 

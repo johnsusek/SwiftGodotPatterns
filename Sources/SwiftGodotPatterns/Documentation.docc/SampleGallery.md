@@ -285,36 +285,6 @@ PoolLease(pool).using { b in
 }
 ```
 
-### 🌱 SpawnSystem
-
-Rate-based generator.
-
-```swift
-let spawner = SpawnSystem<Bullet>()
-spawner.rate = 5
-spawner.jitter = 0.05
-spawner.usePool(pool.acquire) // or spawner.make = Bullet.init
-spawner.onSpawn = { bullet in /* configure & attach */ }
-spawner.reset()
-func _process(delta: Double) { spawner.tick(delta: delta) }
-```
-
-### 🧹 LifetimeComponent2D
-
-Time/offscreen-driven despawn. Attach as a child helper.
-
-```swift
-@Godot
-final class Bullet: Node2D {
-  override func _ready() {
-    let d = LifetimeComponent2D()
-    d.seconds = 2.0
-    d.offscreen = true
-    addChild(node: d)
-  }
-}
-```
-
 ## Architecture
 
 ### 📣 EventBus & ServiceLocator
@@ -345,59 +315,6 @@ let dino = AseSprite("player.json",
 // or:
 let s = AseSprite()
 s.loadAse("player", autoplay: "idle")
-```
-
-### 🎞️ Animation Machine
-
-A declarative mapping between gameplay states and animation clips.
-
-```swift
-let rules = AnimationMachineRules {
-  When("Idle", play: "standing") // State `Idle` loops `standing` animation
-  When("Move", play: "running") // State `Move` loops `running` animation
-  When("Hurt", play: "damaged", loop: false) // State `Hurt` plays `damaged` once
-
-  OnFinish("damaged", go: "Idle")  // Animation `damaged` sets state `Idle` when finished
-}
-
-let sm = StateMachine()
-let sprite = AseSprite(path: "dino", autoplay: "standing") // any AnimatedSprite2D
-
-let animator = AnimationMachine(machine: sm, sprite: sprite, rules: rules)
-animator.activate()
-
-sm.start(in: "Idle")
-sm.transition(to: "Hurt") // plays "damaged", then auto-returns to "Idle"
-```
-
-## Gameplay
-
-### ⏲️ Cooldown
-
-Frame-friendly cooldown timer.
-
-```swift
-var fire = Cooldown(duration: 0.25)
-if wantsToFire, fire.tryUse() { shoot() }
-func _process(delta: Double) { fire.tick(delta: delta) }
-```
-
-
-### ❤️ Health
-
-Game-agnostic hit points.
-
-```swift
-var hp = Health(max: 100)
-hp.onChanged = { old, new in print("HP: \(old) -> \(new)") }
-hp.onDied = { print("You died!") }
-hp.damage(30)   // HP: 100 -> 70
-hp.heal(10)     // HP: 70 -> 80
-hp.invulnerable = true
-hp.damage(999)  // no change
-hp.invulnerable = false
-hp.damage(200)  // HP: 80 -> 0, prints "You died!", then onDamaged(200)
-
 ```
 
 ### 🗡️ Phases (startup/active/recovery)
@@ -445,27 +362,6 @@ queue.push(command)
 queue.drain() // applies if not blocked; otherwise stays queued
 ```
 
-### ⏳ GameTimer
-
-Manual timer with repetition and a static `schedule`.
-
-```swift
-@Godot
-final class Blinker: Control {
-  private let timer = GameTimer(duration: 0.4, repeats: true)
-
-  override func _ready() {
-    _ = GameTimer.schedule(after: 1.0) { [weak self] in
-      guard let self, let box: ColorRect = self.getNode("Box") else { return }
-      box.visible = true
-      self.timer.start()
-    }
-    timer.onTimeout = { [weak self] in self?.getNode("Box")?.visible.toggle() }
-  }
-
-  override func _process(delta: Double) { timer.tick(delta: delta) }
-}
-```
 
 ## 🎮 Input
 

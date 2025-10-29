@@ -1,7 +1,7 @@
 import Foundation
 
 /// A single resource cost (e.g. `"mana": 20`, `"stamina": 5`).
-public struct ResourceCost: Codable, Hashable, Sendable {
+public struct ResourceCost: Sendable, Codable, Hashable {
   /// Resource kind identifier (e.g. `"mana"`, `"energy"`).
   public var kind: String
   /// Amount to spend (must be non-negative at authoring time).

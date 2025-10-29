@@ -2,7 +2,6 @@ import SwiftGodot
 
 /// A hidden node that relays process and ready calls to closures.
 /// Used by `GNode` extensions onProcess, onPhysicsProcess, onReady.
-@_documentation(visibility: private)
 @Godot
 public final class GProcessRelay: Node {
   public var ownerNode: Weak<Node> = .init(nil)
@@ -26,10 +25,4 @@ public final class GProcessRelay: Node {
     guard let host = ownerNode.value else { return }
     onPhysicsCall?(host, delta)
   }
-}
-
-@_documentation(visibility: private)
-public struct Weak<T: AnyObject> {
-  public weak var value: T?
-  public init(_ v: T?) { value = v }
 }
