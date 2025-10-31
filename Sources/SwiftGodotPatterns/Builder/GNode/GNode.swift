@@ -81,12 +81,7 @@ public extension GNode {
     ops.forEach { $0(n) }
 
     for view in children {
-      if let binder = view as? _RefBindTag {
-        let child = binder._makeAndBind(into: n)
-        n.addChild(node: child)
-      } else {
-        n.addChild(node: view.toNode())
-      }
+      n.addChild(node: view.toNode())
     }
 
     return n
