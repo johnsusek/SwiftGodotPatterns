@@ -2,6 +2,7 @@ import SwiftGodot
 
 /// A Godot node that bridges an `EventBus` into the scene,
 /// and relays payloads to registered receivers.
+@_documentation(visibility: private)
 @Godot
 public final class GEventRelay: Node {
   /// The type-erased event bus to subscribe to.
@@ -52,6 +53,7 @@ public final class GEventRelay: Node {
 /// - ``cancel(_:)`` accepting the opaque token returned by registration.
 ///
 /// Tokens are stored as `Any` but are still the underlying `EventBus<E>.Token`.
+@_documentation(visibility: private)
 public struct AnyEventBus {
   private let _onEach: (@escaping (Any) -> Void) -> Any
   private let _cancel: (Any) -> Void
@@ -79,4 +81,9 @@ public extension ServiceLocator {
   /// This is equivalent to `AnyEventBus(resolve(E.self))` and is convenient when you only
   /// need an `AnyEventBus` to wire into a relay.
   static func anyBus<E>(_: E.Type) -> AnyEventBus { AnyEventBus(resolve(E.self)) }
+}
+
+public struct Weak<T: AnyObject> {
+  public weak var value: T?
+  public init(_ v: T?) { value = v }
 }
