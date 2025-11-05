@@ -81,7 +81,14 @@ public extension GNode {
     ops.forEach { $0(n) }
 
     for view in children {
-      n.addChild(node: view.toNode())
+      // Check if this view should flatten its children into this parent
+      if view.shouldFlattenChildren {
+        // Pass this node as the parent - the view will add its children directly
+        _ = view.toNodeWithParent(n)
+      } else {
+        // Normal case: add the view's node as a child
+        n.addChild(node: view.toNode())
+      }
     }
 
     return n
