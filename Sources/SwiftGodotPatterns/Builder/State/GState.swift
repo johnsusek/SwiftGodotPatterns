@@ -25,17 +25,10 @@ public typealias State = GState
 /// ```swift
 /// counter += 1  // Notifies all listeners
 /// ```
-///
-/// Use the projected value (`$counter`) to pass bindings to child components:
-///
-/// ```swift
-/// ChildView(count: $counter)
-/// ```
 @propertyWrapper
-public final class GState<Value> {
+public final class GState<Value: Equatable> {
   private var value: Value
   private var listeners: [(Value) -> Void] = []
-  private let isEquatable: Bool
 
   /// The underlying value being wrapped by this state container.
   ///
@@ -45,13 +38,7 @@ public final class GState<Value> {
     get { value }
     set {
       // Prevent infinite loops by checking if the value actually changed
-      if isEquatable, let oldEquatable = value as? any Equatable,
-         let newEquatable = newValue as? any Equatable,
-         equal(oldEquatable, newEquatable)
-      {
-        return
-      }
-
+      guard value != newValue else { return }
       value = newValue
       notifyListeners()
     }
@@ -72,7 +59,6 @@ public final class GState<Value> {
   /// - Parameter wrappedValue: The initial value to store in this state container.
   public init(wrappedValue: Value) {
     value = wrappedValue
-    isEquatable = wrappedValue is any Equatable
   }
 
   /// Registers a closure to be called whenever the state value changes.
@@ -92,46 +78,4 @@ public final class GState<Value> {
       listener(value)
     }
   }
-}
-
-// MARK: - Equatable Helper
-
-/// Helper function to compare two equatable values using type erasure.
-///
-/// This function enables safe comparison of type-erased `Equatable` values, which is
-/// necessary for the infinite loop prevention mechanism in `GState`.
-///
-/// - Parameters:
-///   - lhs: The left-hand side equatable value
-///   - rhs: The right-hand side equatable value
-/// - Returns: `true` if the values are equal, `false` otherwise
-@inline(__always)
-private func equal(_ lhs: any Equatable, _ rhs: any Equatable) -> Bool {
-  guard type(of: lhs) == type(of: rhs) else { return false }
-
-  // Fast path for common primitive types
-  if let lhs = lhs as? String, let rhs = rhs as? String { return lhs == rhs }
-  if let lhs = lhs as? Int, let rhs = rhs as? Int { return lhs == rhs }
-  if let lhs = lhs as? Double, let rhs = rhs as? Double { return lhs == rhs }
-  if let lhs = lhs as? Bool, let rhs = rhs as? Bool { return lhs == rhs }
-
-  // Fallback to Mirror-based comparison for custom types
-  let lhsMirror = Mirror(reflecting: lhs)
-  let rhsMirror = Mirror(reflecting: rhs)
-
-  if lhsMirror.children.count != rhsMirror.children.count {
-    return false
-  }
-
-  for (lhsChild, rhsChild) in zip(lhsMirror.children, rhsMirror.children) {
-    if let lhsValue = lhsChild.value as? any Equatable,
-       let rhsValue = rhsChild.value as? any Equatable
-    {
-      if !equal(lhsValue, rhsValue) {
-        return false
-      }
-    }
-  }
-
-  return true
 }
