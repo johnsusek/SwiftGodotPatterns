@@ -130,9 +130,7 @@ public struct If: GView {
         )
     }
 
-    public var shouldFlattenChildren: Bool { true }
-
-    public func toNodeWithParent(_ parent: Node) -> Node? {
+    public func toNode() -> Node {
         // For destroy mode, we need to track currently built nodes
         var currentTrueNodes: [Node]? = nil
         var currentFalseNodes: [Node]? = nil
@@ -143,8 +141,11 @@ public struct If: GView {
             currentFalseNodes = falseContent.map { $0.toNode() }
         }
 
-        // Use the parent directly instead of creating a wrapper container
-        let container = parent
+        // Auto-detect the appropriate container type based on actual children
+        let container = createContainer(sampleNode: currentTrueNodes?.first ?? currentFalseNodes?.first)
+        if let nodeName = nodeName {
+            container.name = StringName(nodeName)
+        }
 
         // Watch state changes with throttling and warnings
         condition.onChange { [weak container] isTrue in
@@ -227,14 +228,7 @@ public struct If: GView {
             }
         }
 
-        return nil
-    }
-
-    public func toNode() -> Node {
-        // This shouldn't be called when shouldFlattenChildren is true,
-        // but provide a fallback implementation
-        GD.printErr("If.toNode() called - should use toNodeWithParent() instead")
-        return Node()
+        return container
     }
 }
 
