@@ -3,13 +3,11 @@
 
 ### SwiftGodotPatterns
 
-Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot), companion to [SwiftGodotBuilder](https://github.com/johnsusek/SwiftGodotBuilder).
+Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot).
 
-#### 📕 [Documentation](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns)
+📕 [API Documentation](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns)
 
-#### 📔 [Examples](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns/examples)
-
-<br><br><br>
+<br><br><br><br>
 
 ## Builder Pattern
 
@@ -22,13 +20,13 @@ SwiftGodotPatterns provides a SwiftUI-inspired declarative builder pattern for c
 ```swift
 // Create a node with default initializer
 let sprite = GNode<Sprite2D> {
-    // Children go here
+  // Children go here
 }
 
 // With custom initializer
 let hud = GNode<CustomHUD>("HUD", make: { CustomHUD(config: myConfig) }) {
-    HealthBar()
-    ScoreLabel()
+  HealthBar()
+  ScoreLabel()
 }
 ```
 
@@ -37,8 +35,8 @@ let hud = GNode<CustomHUD>("HUD", make: { CustomHUD(config: myConfig) }) {
 ```swift
 // Instead of GNode<Sprite2D>(), use Sprite2D$()
 Sprite2D$()
-    .texture(myTexture)
-    .position(Vector2(x: 100, y: 100))
+  .texture(myTexture)
+  .position(Vector2(x: 100, y: 100))
 
 // Works for all Godot node types
 VBoxContainer$ {
@@ -64,10 +62,9 @@ Label$().name("MyLabel")  // Converted to StringName automatically
 
 ```swift
 // For complex configuration
-ColorRect$()
-  .configure { rect in
-    // do anything with rect: ColorRect
-  }
+ColorRect$().configure { rect in
+  // do anything with rect here
+}
 ```
 
 ### 📦 State Management
@@ -100,12 +97,12 @@ VBoxContainer$ {
 
 // For Identifiable types, no need to specify id
 ForEach($items) { $item in
-    ItemRow(item: $item)
+  ItemRow(item: $item)
 }
 
 // Modes: .standard (default) or .deferred (batches updates)
 ForEach($items, mode: .deferred) { $item in
-    // ...
+  // ...
 }
 ```
 
@@ -115,15 +112,15 @@ ForEach($items, mode: .deferred) { $item in
 @State var showDetails = false
 
 VBoxContainer$ {
-    Button$().text("Toggle")
-        .onSignal(\.pressed) { _ in showDetails.toggle() }
+  Button$().text("Toggle")
+    .onSignal(\.pressed) { _ in showDetails.toggle() }
 
-    If($showDetails) {
-        Label$().text("Details are visible!")
-    }
-    .Else {
-        Label$().text("Details are hidden")
-    }
+  If($showDetails) {
+    Label$().text("Details are visible!")
+  }
+  .Else {
+    Label$().text("Details are hidden")
+  }
 }
 ```
 
@@ -154,8 +151,8 @@ Load Godot resources using declarative syntax.
 
 // Load with custom apply logic
 .withResource("shader.gdshader", as: Shader.self) { node, shader in
-    node.material = ShaderMaterial()
-    (node.material as? ShaderMaterial)?.shader = shader
+  node.material = ShaderMaterial()
+  (node.material as? ShaderMaterial)?.shader = shader
 }
 ```
 
@@ -184,17 +181,17 @@ Connect to Godot signals with type-safe closures.
 ```swift
 // No arguments
 .onSignal(\.pressed) { node in
-    print("\(node) was pressed")
+  print("\(node) was pressed")
 }
 
 // One argument
 .onSignal(\.areaEntered) { node, area in
-    print("Area entered: \(area)")
+  print("Area entered: \(area)")
 }
 
 // Multiple arguments (up to 7 supported)
 .onSignal(\.bodyShapeEntered) { node, bodyRid, body, bodyShapeIndex, localShapeIndex in
-    // Handle collision
+  // Handle collision
 }
 ```
 
@@ -205,12 +202,12 @@ Subscribe to events from the EventBus system.
 ```swift
 // Subscribe to all events of type
 .onEvent(GameEvent.self) { node, event in
-    // Handle event
+  // Handle event
 }
 
 // Subscribe with filter
 .onEvent(GameEvent.self, match: { $0.isImportant }) { node, event in
-    // Handle only important events
+  // Handle only important events
 }
 ```
 
@@ -334,18 +331,358 @@ Register callbacks for node lifecycle events.
 ```swift
 // Called when node enters tree
 .onReady { node in
-    print("Node is ready!")
+  print("Node is ready!")
 }
 
 // Called every frame
 .onProcess { node, delta in
-    node.position.x += 100 * delta
+  node.position.x += 100 * delta
 }
 
 // Called every physics frame
 .onPhysicsProcess { node, delta in
-    // Physics updates
+  // Physics updates
 }
 ```
 
----
+## Event System
+
+### 📢 EventBus
+
+Thread-safe publish/subscribe event bus for in-process messaging.
+
+```swift
+// Define event types
+enum GameEvent {
+  case playerDied
+  case scoreChanged(Int)
+  case levelComplete
+}
+
+// Create or resolve a bus
+let bus = ServiceLocator.resolve(GameEvent.self)
+
+// Subscribe to events
+let token = bus.onEach { event in
+  switch event {
+  case .playerDied:
+    print("Game Over")
+  case .scoreChanged(let score):
+    print("Score: \(score)")
+  case .levelComplete:
+    print("Level Complete!")
+  }
+}
+
+// Publish events
+bus.publish(.scoreChanged(100))
+
+// Cancel subscription
+bus.cancel(token)
+
+// Debug logging
+bus.tapLog(level: .debug, name: "GameEvents")
+```
+
+**ServiceLocator** provides global singleton buses per event type:
+
+```swift
+// Different event types get different buses
+let gameBus = ServiceLocator.resolve(GameEvent.self)
+let uiBus = ServiceLocator.resolve(UIEvent.self)
+```
+
+## Input Actions
+
+Declarative input mapping with type-safe DSL.
+
+### 🎮 Basic Actions
+
+```swift
+Actions {
+    Action("jump") {
+        Key(.space)
+        JoyButton(.a, device: 0)
+    }
+
+    Action("shoot") {
+        MouseButton(1)
+        Key(.leftCtrl)
+    }
+
+    Action("pause") {
+        Key(.escape)
+    }
+}
+.install(clearExisting: true)
+```
+
+### 🕹️ Analog Axes
+
+```swift
+Actions {
+    // Vertical axis (up/down)
+    ActionRecipes.axisUD(
+        namePrefix: "move",
+        device: 0,
+        axis: .leftY,
+        dz: 0.2,
+        keyDown: .s,
+        keyUp: .w
+    )
+
+    // Horizontal axis (left/right)
+    ActionRecipes.axisLR(
+        namePrefix: "move",
+        device: 0,
+        axis: .leftX,
+        dz: 0.2,
+        keyLeft: .a,
+        keyRight: .d
+    )
+}
+.install()
+
+// Creates actions: move_up, move_down, move_left, move_right
+```
+
+## Property Wrappers
+
+Powerful property wrappers for node references and dependency injection. Call `bindProps()` in `_ready()` to activate.
+
+### 👶 @Child - Single Child Reference
+
+```swift
+final class Player: Node {
+    @Child("Sprite") var sprite: Sprite2D?
+    @Child("Health", deep: true) var healthBar: ProgressBar?
+
+    override func _ready() {
+        bindProps()
+        sprite?.visible = true
+    }
+}
+```
+
+### 👨‍👩‍👧‍👦 @Children - Multiple Children
+
+```swift
+final class Menu: Node {
+    @Children var buttons: [Button]
+    @Children("Items", deep: true) var items: [Node2D]
+
+    override func _ready() {
+        bindProps()
+        buttons.forEach { $0.disabled = false }
+    }
+}
+```
+
+### 👴 @Ancestor - Find Parent by Type
+
+```swift
+final class HealthBar: Node {
+    @Ancestor var player: Player?
+
+    override func _ready() {
+        bindProps()
+        player?.health.onChange { [weak self] hp in
+            self?.updateBar(hp)
+        }
+    }
+}
+```
+
+### 👫 @Sibling - Reference Sibling Node
+
+```swift
+final class PlayerController: Node {
+    @Sibling("Sprite") var sprite: Sprite2D?
+    @Sibling var firstNode: Node?  // First sibling of any type
+
+    override func _ready() {
+        bindProps()
+    }
+}
+```
+
+### 🌍 @Autoload - Reference Autoload Singleton
+
+```swift
+final class GameUI: CanvasLayer {
+    @Autoload("GameState") var gameState: GameState?
+    @Autoload("AudioManager") var audio: AudioManager?
+
+    override func _ready() {
+        bindProps()
+        print("Level: \(gameState?.level ?? 0)")
+    }
+}
+```
+
+### 👥 @Group - Query by Group
+
+```swift
+final class EnemyManager: Node {
+    @Group("enemies") var enemies: [CharacterBody2D]
+    @Group(["interactive", "collectible"]) var items: [Node]
+
+    override func _ready() {
+        bindProps()
+
+        // Use immediately
+        print("Enemy count: \(enemies.count)")
+
+        // Refresh later
+        let current = $enemies()  // Re-queries and returns fresh list
+    }
+}
+```
+
+### 🔌 @Service - Inject EventBus
+
+```swift
+enum PlayerEvent {
+    case died
+    case healed(Int)
+}
+
+final class PlayerHealth: Node {
+    @Service var events: EventBus<PlayerEvent>?
+
+    override func _ready() {
+        bindProps()
+        events?.publish(.healed(50))
+    }
+}
+```
+
+### 💾 @Prefs - Persistent Preferences
+
+```swift
+final class Settings: Node {
+    @Prefs("musicVolume", default: 0.5) var musicVolume: Double
+    @Prefs("showHints", default: true) var showHints: Bool
+
+    override func _ready() {
+        bindProps()
+
+        // Auto-loads from user://prefs.json
+        print("Volume: \(musicVolume)")
+
+        // Auto-saves on change
+        musicVolume = 0.8
+    }
+}
+```
+
+## Utilities
+
+### 📝 MsgLog
+
+Simple leveled logging singleton.
+
+```swift
+// Basic logging
+MsgLog.shared.debug("Player spawned")
+MsgLog.shared.info("Game started")
+MsgLog.shared.warn("Low health")
+MsgLog.shared.error("Failed to load")
+
+// Configure minimum level
+MsgLog.shared.minLevel = .warn  // Only warn and error
+
+// Custom sink
+MsgLog.shared.sink = { level, message in
+    myCustomLogger.log(level, message)
+}
+
+// Access history
+for (level, message) in MsgLog.shared.lines {
+  print("[\(level)] \(message)")
+}
+```
+
+### 🔧 SwiftGodot Extensions
+
+**Engine:**
+
+```swift
+// Get SceneTree
+if let tree = Engine.getSceneTree() {
+  // ...
+}
+
+// Schedule next frame callback
+Engine.onNextFrame {
+  print("Next frame!")
+}
+
+Engine.onNextPhysicsFrame {
+  print("Next physics frame!")
+}
+```
+
+**Node:**
+
+```swift
+// Typed node queries
+let sprites: [Sprite2D] = node.getChildren()
+let firstSprite: Sprite2D? = node.getChild()
+let enemySprite: Sprite2D? = node.getNode("Enemy")
+
+// Group queries
+let enemies: [Enemy] = node.nodes(inGroup: "enemies")
+
+// Parent chain
+let parents: [Node2D] = node.getParents()
+```
+
+**Vector2:**
+
+```swift
+// Convenience init
+let pos = Vector2(100, 200)
+
+// Scalar multiplication (Float, Double, Int)
+let doubled = pos * 2
+let scaled = pos * 1.5
+```
+
+## Components
+
+### 🎨 AseSprite
+
+Loads and plays Aseprite animations directly in Godot.
+
+**Features:**
+- Loads Aseprite JSON + spritesheet exports
+- Maps Aseprite tags to Godot animations
+- Supports layer filtering
+- Handles trimmed frames with automatic offset
+- Multiple timing strategies
+
+```swift
+// Basic usage
+let character = AseSprite(
+  "character.json",
+  layer: "Body",
+  options: .init(
+    timing: .delaysGCD,
+    trimming: .applyPivotOrCenter
+  ),
+  autoplay: "Idle"
+)
+
+// In builder pattern
+GNode<AseSprite>(path: "player", layer: "Main")
+  .configure { sprite in
+    sprite.play(anim: "Walk")
+  }
+```
+
+**Options:**
+- `timing`: `.uniformFPS`, `.exactDelays`, `.delaysGCD`
+- `trimming`: `.applyPivotOrCenter`, `.none`
+- Layer filtering for multi-layer exports
+- Tag filtering/mapping
