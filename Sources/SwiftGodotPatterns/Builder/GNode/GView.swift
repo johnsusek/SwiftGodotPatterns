@@ -31,6 +31,18 @@ public protocol GView {
   ///
   /// - Returns: A fully constructed `Node` ready to be inserted in the tree.
   func toNode() -> Node
+
+  /// Indicates whether this view's children should be flattened into the parent.
+  ///
+  /// When true, instead of adding this view's node as a child, the parent
+  /// will call `toNodeWithParent()` passing itself as the parent.
+  var shouldFlattenChildren: Bool { get }
+
+  /// Materializes this view with a reference to its parent node.
+  ///
+  /// Only called when `shouldFlattenChildren` is true. The view can then
+  /// add its children directly to the parent.
+  func toNodeWithParent(_ parent: Node) -> Node?
 }
 
 public extension GView {
@@ -40,6 +52,12 @@ public extension GView {
   ///
   /// - Returns: The node produced by `body.toNode()`.
   func toNode() -> Node { body.toNode() }
+
+  /// Default implementation - views don't flatten by default.
+  var shouldFlattenChildren: Bool { false }
+
+  /// Default implementation - returns nil (node not used).
+  func toNodeWithParent(_ parent: Node) -> Node? { nil }
 }
 
 @_documentation(visibility: private)
