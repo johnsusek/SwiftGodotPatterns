@@ -448,7 +448,7 @@ Actions {
 
 ## Property Wrappers
 
-Powerful property wrappers for node references and dependency injection. Call `bindProps()` in `_ready()` to activate.
+For node references and dependency injection. Call `bindProps()` in `_ready()` to activate.
 
 ### 👶 @Child - Single Child Reference
 
