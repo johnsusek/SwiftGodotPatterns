@@ -279,7 +279,7 @@ public enum ActionRecipes {
 
 // MARK: - API Surface
 
-public struct InputPhase: OptionSet {
+public struct InputPhase: OptionSet, Sendable {
   public let rawValue: Int
   public init(rawValue: Int) { self.rawValue = rawValue }
   public static let pressed = InputPhase(rawValue: 1 << 0)

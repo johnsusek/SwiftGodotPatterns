@@ -24,7 +24,7 @@ public extension GNode where T: CollisionObject2D {
 
 /// Named `Physics2DLayer` layers you can use to make your code more readable,
 /// instead of using raw bitmasks.
-public struct Physics2DLayer: OptionSet {
+public struct Physics2DLayer: OptionSet, Sendable {
   public let rawValue: UInt32
 
   public init(rawValue: UInt32) { self.rawValue = rawValue }

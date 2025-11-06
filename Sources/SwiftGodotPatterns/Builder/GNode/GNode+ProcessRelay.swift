@@ -47,7 +47,8 @@ public extension GNode where T: Node {
   }
 }
 
-private let _gProcessRelayName = StringName("__GProcessRelay__")
+// safe because constant value
+private nonisolated(unsafe) let _gProcessRelayName = StringName("__GProcessRelay__")
 
 private func _attachOrUpdateRelay<T: Node>(
   _ host: T,

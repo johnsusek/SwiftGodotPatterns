@@ -85,7 +85,8 @@ public extension EventBus {
 /// bus.publish(.line("ready"))
 /// ```
 public enum ServiceLocator {
-  private static var map: [ObjectIdentifier: Any] = [:]
+  // safe because access is synchronized via `lock`
+  private nonisolated(unsafe) static var map: [ObjectIdentifier: Any] = [:]
   private static let lock = NSLock()
 
   /// Returns the shared bus for the given event type.

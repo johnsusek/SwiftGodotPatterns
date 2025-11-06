@@ -151,5 +151,4 @@ if let old = try? Data(contentsOf: outAliases), old == newData {
   fputs("Aliases unchanged\n", stderr)
 } else {
   try newData.write(to: outAliases, options: .atomic)
-  print("Aliases: \(nodeKinds.count) types -> \(outAliases.path)")
 }
