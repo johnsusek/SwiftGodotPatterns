@@ -244,6 +244,71 @@ Layout helpers for `Control` nodes (non-container and container contexts).
 .size(.expandFill)
 ```
 
+### 🎨 Theme Building
+
+Create themes declaratively from dictionaries with automatic camelCase to snake_case conversion.
+
+**Theme Dictionary Structure:**
+
+```swift
+let myTheme = Theme.build([
+  "Button": [
+    "colors": ["fontColor": Color.white],          // camelCase auto-converted
+    "constants": ["outlineSize": 2],
+    "fontSizes": ["fontSize": 16]
+  ],
+  "Label": [
+    "colors": ["font_color": Color.white],         // snake_case also works
+    "font_sizes": ["font_size": 14]
+  ]
+])
+
+// Apply theme to node
+Control$().theme(myTheme)
+```
+
+**Theme Categories:**
+- `colors` - Color properties (e.g., `fontColor`, `fontColorDisabled`)
+- `constants` - Integer constants (e.g., `outlineSize`, `separation`)
+- `fonts` - Font resources (e.g., `font`)
+- `fontSizes` - Font sizes (e.g., `fontSize`)
+- `icons` - Texture2D icons (e.g., `checked`, `unchecked`)
+- `styleBoxes` - StyleBox instances (e.g., `normal`, `hover`, `pressed`)
+
+**StyleBox Helpers:**
+
+```swift
+// Flat color
+.flat(color: Color.blue, contentMargin: 8)
+
+// With border
+.flat(
+  color: Color.blue,
+  borderColor: Color.white,
+  borderWidth: 2,
+  contentMargin: 8
+)
+
+// With rounded corners
+.flat(
+  color: Color.blue,
+  cornerRadius: 4,
+  contentMargin: 8
+)
+
+// Complete example
+let theme = Theme.build([
+  "Button": [
+    "colors": ["fontColor": Color.white],
+    "styleBoxes": [
+      "normal": .flat(color: Color.blue, cornerRadius: 4),
+      "hover": .flat(color: Color.cyan, cornerRadius: 4),
+      "pressed": .flat(color: Color.darkBlue, cornerRadius: 4)
+    ]
+  ]
+])
+```
+
 ### 💥 Collision (2D)
 
 Set collision layers and masks for `CollisionObject2D` nodes.
