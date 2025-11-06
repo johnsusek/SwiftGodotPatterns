@@ -400,19 +400,19 @@ Declarative input mapping with type-safe DSL.
 
 ```swift
 Actions {
-    Action("jump") {
-        Key(.space)
-        JoyButton(.a, device: 0)
-    }
+  Action("jump") {
+    Key(.space)
+    JoyButton(.a, device: 0)
+  }
 
-    Action("shoot") {
-        MouseButton(1)
-        Key(.leftCtrl)
-    }
+  Action("shoot") {
+    MouseButton(1)
+    Key(.leftCtrl)
+  }
 
-    Action("pause") {
-        Key(.escape)
-    }
+  Action("pause") {
+    Key(.escape)
+  }
 }
 .install(clearExisting: true)
 ```
@@ -421,25 +421,25 @@ Actions {
 
 ```swift
 Actions {
-    // Vertical axis (up/down)
-    ActionRecipes.axisUD(
-        namePrefix: "move",
-        device: 0,
-        axis: .leftY,
-        dz: 0.2,
-        keyDown: .s,
-        keyUp: .w
-    )
+  // Vertical axis (up/down)
+  ActionRecipes.axisUD(
+    namePrefix: "move",
+    device: 0,
+    axis: .leftY,
+    dz: 0.2,
+    keyDown: .s,
+    keyUp: .w
+  )
 
-    // Horizontal axis (left/right)
-    ActionRecipes.axisLR(
-        namePrefix: "move",
-        device: 0,
-        axis: .leftX,
-        dz: 0.2,
-        keyLeft: .a,
-        keyRight: .d
-    )
+  // Horizontal axis (left/right)
+  ActionRecipes.axisLR(
+    namePrefix: "move",
+    device: 0,
+    axis: .leftX,
+    dz: 0.2,
+    keyLeft: .a,
+    keyRight: .d
+  )
 }
 .install()
 
@@ -454,13 +454,13 @@ Powerful property wrappers for node references and dependency injection. Call `b
 
 ```swift
 final class Player: Node {
-    @Child("Sprite") var sprite: Sprite2D?
-    @Child("Health", deep: true) var healthBar: ProgressBar?
+  @Child("Sprite") var sprite: Sprite2D?
+  @Child("Health", deep: true) var healthBar: ProgressBar?
 
-    override func _ready() {
-        bindProps()
-        sprite?.visible = true
-    }
+  override func _ready() {
+    bindProps()
+    sprite?.visible = true
+  }
 }
 ```
 
@@ -468,13 +468,13 @@ final class Player: Node {
 
 ```swift
 final class Menu: Node {
-    @Children var buttons: [Button]
-    @Children("Items", deep: true) var items: [Node2D]
+  @Children var buttons: [Button]
+  @Children("Items", deep: true) var items: [Node2D]
 
-    override func _ready() {
-        bindProps()
-        buttons.forEach { $0.disabled = false }
-    }
+  override func _ready() {
+    bindProps()
+    buttons.forEach { $0.disabled = false }
+  }
 }
 ```
 
@@ -482,14 +482,14 @@ final class Menu: Node {
 
 ```swift
 final class HealthBar: Node {
-    @Ancestor var player: Player?
+  @Ancestor var player: Player?
 
-    override func _ready() {
-        bindProps()
-        player?.health.onChange { [weak self] hp in
-            self?.updateBar(hp)
-        }
+  override func _ready() {
+    bindProps()
+    player?.health.onChange { [weak self] hp in
+      self?.updateBar(hp)
     }
+  }
 }
 ```
 
@@ -497,12 +497,12 @@ final class HealthBar: Node {
 
 ```swift
 final class PlayerController: Node {
-    @Sibling("Sprite") var sprite: Sprite2D?
-    @Sibling var firstNode: Node?  // First sibling of any type
+  @Sibling("Sprite") var sprite: Sprite2D?
+  @Sibling var firstNode: Node?  // First sibling of any type
 
-    override func _ready() {
-        bindProps()
-    }
+  override func _ready() {
+    bindProps()
+  }
 }
 ```
 
@@ -510,13 +510,13 @@ final class PlayerController: Node {
 
 ```swift
 final class GameUI: CanvasLayer {
-    @Autoload("GameState") var gameState: GameState?
-    @Autoload("AudioManager") var audio: AudioManager?
+  @Autoload("GameState") var gameState: GameState?
+  @Autoload("AudioManager") var audio: AudioManager?
 
-    override func _ready() {
-        bindProps()
-        print("Level: \(gameState?.level ?? 0)")
-    }
+  override func _ready() {
+    bindProps()
+    print("Level: \(gameState?.level ?? 0)")
+  }
 }
 ```
 
@@ -524,18 +524,18 @@ final class GameUI: CanvasLayer {
 
 ```swift
 final class EnemyManager: Node {
-    @Group("enemies") var enemies: [CharacterBody2D]
-    @Group(["interactive", "collectible"]) var items: [Node]
+  @Group("enemies") var enemies: [CharacterBody2D]
+  @Group(["interactive", "collectible"]) var items: [Node]
 
-    override func _ready() {
-        bindProps()
+  override func _ready() {
+    bindProps()
 
-        // Use immediately
-        print("Enemy count: \(enemies.count)")
+    // Use immediately
+    print("Enemy count: \(enemies.count)")
 
-        // Refresh later
-        let current = $enemies()  // Re-queries and returns fresh list
-    }
+    // Refresh later
+    let current = $enemies()  // Re-queries and returns fresh list
+  }
 }
 ```
 
@@ -543,17 +543,17 @@ final class EnemyManager: Node {
 
 ```swift
 enum PlayerEvent {
-    case died
-    case healed(Int)
+  case died
+  case healed(Int)
 }
 
 final class PlayerHealth: Node {
-    @Service var events: EventBus<PlayerEvent>?
+  @Service var events: EventBus<PlayerEvent>?
 
-    override func _ready() {
-        bindProps()
-        events?.publish(.healed(50))
-    }
+  override func _ready() {
+    bindProps()
+    events?.publish(.healed(50))
+  }
 }
 ```
 
@@ -561,18 +561,18 @@ final class PlayerHealth: Node {
 
 ```swift
 final class Settings: Node {
-    @Prefs("musicVolume", default: 0.5) var musicVolume: Double
-    @Prefs("showHints", default: true) var showHints: Bool
+  @Prefs("musicVolume", default: 0.5) var musicVolume: Double
+  @Prefs("showHints", default: true) var showHints: Bool
 
-    override func _ready() {
-        bindProps()
+  override func _ready() {
+    bindProps()
 
-        // Auto-loads from user://prefs.json
-        print("Volume: \(musicVolume)")
+    // Auto-loads from user://prefs.json
+    print("Volume: \(musicVolume)")
 
-        // Auto-saves on change
-        musicVolume = 0.8
-    }
+    // Auto-saves on change
+    musicVolume = 0.8
+  }
 }
 ```
 
@@ -594,7 +594,7 @@ MsgLog.shared.minLevel = .warn  // Only warn and error
 
 // Custom sink
 MsgLog.shared.sink = { level, message in
-    myCustomLogger.log(level, message)
+  myCustomLogger.log(level, message)
 }
 
 // Access history
