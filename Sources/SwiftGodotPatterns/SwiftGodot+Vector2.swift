@@ -1,7 +1,24 @@
 import SwiftGodot
 
 /// Convenience extensions for Godot types.
-// TODO: Put some of these into a SwiftGodot PR
+
+extension Vector2: @retroactive ExpressibleByArrayLiteral {
+  public typealias ArrayLiteralElement = Float
+  /// Initializes a Vector2 from an array literal of two Float values.
+  /// - Example:
+  /// ```swift
+  /// let vector: Vector2 = [1.0, 2.0]
+  /// ```
+  public init(arrayLiteral elements: Float...) {
+    if elements.count != 2 {
+      GD.printErr("Vector2 initialized with \(elements.count) elements, expected 2.")
+    }
+    if elements.count == 1 { self.init(x: elements[0], y: elements[0]); return }
+    if elements.count >= 2 { self.init(x: elements[0], y: elements[1]); return }
+    self.init(x: 0.0, y: 0.0) // fallback
+    return
+  }
+}
 
 public extension Vector2 {
   /// Convenience initializer.
