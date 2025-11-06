@@ -40,6 +40,7 @@ let package = Package(
             name: "SwiftGodotPatterns",
             dependencies: [
                 "SwiftGodot",
+                "SwiftGodotPatternsMacros",
                 .product(name: "Atomics", package: "swift-atomics"),
                 .product(name: "DMMessagePack", package: "msgpack-swift"),
             ],
