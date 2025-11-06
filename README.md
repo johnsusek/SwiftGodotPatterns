@@ -576,6 +576,61 @@ final class Settings: Node {
 }
 ```
 
+### 📡 @OnSignal - Declarative Signal Binding
+
+Automatically connect Godot signals to Swift methods using a macro. Call `bindProps()` in `_ready()` to activate.
+
+```swift
+final class MainMenu: Node {
+  @OnSignal("StartButton", \Button.pressed)
+  func onStartPressed(_ sender: Button) {
+    print("Game starting!")
+  }
+
+  @OnSignal("Player/Area2D", \Area2D.bodyEntered)
+  func onPlayerAreaEntered(_ sender: Area2D, _ body: Node) {
+    print("Body entered: \(body.name)")
+  }
+
+  @OnSignal("QuitButton", \Button.pressed, flags: .oneShot)
+  func onQuitPressed(_ sender: Button) {
+    // Automatically disconnects after first call
+    getTree()?.quit()
+  }
+
+  override func _ready() {
+    bindProps()
+  }
+}
+```
+
+**Features:**
+- Type-safe signal connections using keypaths
+- Supports signals with 0-3 arguments (more argument counts available)
+- Node path resolution (relative to host node)
+- Optional connection flags (`.deferred`, `.oneShot`, etc.)
+- Handler receives typed sender as first parameter
+
+**Examples by Signal Type:**
+
+```swift
+// Zero arguments
+@OnSignal("Button", \Button.pressed)
+func onPressed(_ sender: Button) { }
+
+// One argument
+@OnSignal("Area", \Area2D.bodyEntered)
+func onBodyEntered(_ sender: Area2D, _ body: Node2D) { }
+
+// Two arguments
+@OnSignal("Area", \Area2D.bodyShapeEntered)
+func onShapeEntered(_ sender: Area2D, _ bodyRid: RID, _ body: Node2D) { }
+
+// With connection flags
+@OnSignal("Timer", \Timer.timeout, flags: [.oneShot, .deferred])
+func onTimeout(_ sender: Timer) { }
+```
+
 ## Utilities
 
 ### 📝 MsgLog
