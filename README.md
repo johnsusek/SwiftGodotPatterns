@@ -9,7 +9,7 @@ Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftG
 
 <br><br><br><br>
 
-## Builder Pattern
+## Builder
 
 ### 🏗️ Core Concepts
 
@@ -67,77 +67,7 @@ ColorRect$().configure { rect in
 }
 ```
 
-### 📦 State Management
-
-**@State Property Wrapper:**
-
-```swift
-@State var position: Vector2 = .zero
-
-Node2D$().position($position)
-```
-
-### 🔄 Dynamic Views
-
-**ForEach - Dynamic Lists:**
-
-```swift
-@State var items: [Item] = []
-
-VBoxContainer$ {
-  ForEach($items, id: \.id) { $item in
-    HBoxContainer$ {
-      Label$().text(item.wrappedValue.name)
-      Button$().text("Delete").onSignal(\.pressed) { _ in
-        items.removeAll { $0.id == item.wrappedValue.id }
-      }
-    }
-  }
-}
-
-// For Identifiable types, no need to specify id
-ForEach($items) { $item in
-  ItemRow(item: $item)
-}
-
-// Modes: .standard (default) or .deferred (batches updates)
-ForEach($items, mode: .deferred) { $item in
-  // ...
-}
-```
-
-**If - Conditional Rendering:**
-
-```swift
-@State var showDetails = false
-
-VBoxContainer$ {
-  Button$().text("Toggle")
-    .onSignal(\.pressed) { _ in showDetails.toggle() }
-
-  If($showDetails) {
-    Label$().text("Details are visible!")
-  }
-  .Else {
-    Label$().text("Details are hidden")
-  }
-}
-```
-
-**If Modes:**
-
-```swift
-// .hide (default) - Toggles visible property (fast)
-If($condition) { /* ... */ }
-
-// .remove - Uses addChild/removeChild (cleaner tree)
-If($condition) { /* ... */ }.mode(.remove)
-
-// .destroy - Uses queueFree/rebuild (frees memory)
-If($condition) { /* ... */ }.mode(.destroy)
-```
-
-## GNode Modifiers
+## Node Modifiers
 
 Custom modifiers available on `GNode` instances.
 
@@ -244,71 +174,6 @@ Layout helpers for `Control` nodes (non-container and container contexts).
 .size(.expandFill)
 ```
 
-### 🎨 Theme Building
-
-Create themes declaratively from dictionaries with automatic camelCase to snake_case conversion.
-
-**Theme Dictionary Structure:**
-
-```swift
-let myTheme = Theme.build([
-  "Button": [
-    "colors": ["fontColor": Color.white],          // camelCase auto-converted
-    "constants": ["outlineSize": 2],
-    "fontSizes": ["fontSize": 16]
-  ],
-  "Label": [
-    "colors": ["font_color": Color.white],         // snake_case also works
-    "font_sizes": ["font_size": 14]
-  ]
-])
-
-// Apply theme to node
-Control$().theme(myTheme)
-```
-
-**Theme Categories:**
-- `colors` - Color properties (e.g., `fontColor`, `fontColorDisabled`)
-- `constants` - Integer constants (e.g., `outlineSize`, `separation`)
-- `fonts` - Font resources (e.g., `font`)
-- `fontSizes` - Font sizes (e.g., `fontSize`)
-- `icons` - Texture2D icons (e.g., `checked`, `unchecked`)
-- `styleBoxes` - StyleBox instances (e.g., `normal`, `hover`, `pressed`)
-
-**StyleBox Helpers:**
-
-```swift
-// Flat color
-.flat(color: Color.blue, contentMargin: 8)
-
-// With border
-.flat(
-  color: Color.blue,
-  borderColor: Color.white,
-  borderWidth: 2,
-  contentMargin: 8
-)
-
-// With rounded corners
-.flat(
-  color: Color.blue,
-  cornerRadius: 4,
-  contentMargin: 8
-)
-
-// Complete example
-let theme = Theme.build([
-  "Button": [
-    "colors": ["fontColor": Color.white],
-    "styleBoxes": [
-      "normal": .flat(color: Color.blue, cornerRadius: 4),
-      "hover": .flat(color: Color.cyan, cornerRadius: 4),
-      "pressed": .flat(color: Color.darkBlue, cornerRadius: 4)
-    ]
-  ]
-])
-```
-
 ### 💥 Collision (2D)
 
 Set collision layers and masks for `CollisionObject2D` nodes.
@@ -319,6 +184,37 @@ Set collision layers and masks for `CollisionObject2D` nodes.
 ```
 
 Available layers: `.alpha`, `.beta`, `.gamma`, `.delta`, `.epsilon`, `.zeta`, `.eta`, `.theta`, `.iota`, `.kappa`, `.lambda`, `.mu`, `.nu`, `.xi`, `.omicron`, `.pi`, `.rho`, `.sigma`, `.tau`, `.upsilon`, `.phi`, `.chi`, `.psi`, `.omega`
+
+### ⚡ Process Hooks
+
+Register callbacks for node lifecycle events.
+
+```swift
+// Called when node enters tree
+.onReady { node in
+  print("Node is ready!")
+}
+
+// Called every frame
+.onProcess { node, delta in
+  node.position.x += 100 * delta
+}
+
+// Called every physics frame
+.onPhysicsProcess { node, delta in
+  // Physics updates
+}
+```
+
+## 📦 State Management
+
+**@State Property Wrapper:**
+
+```swift
+@State var position: Vector2 = .zero
+
+Node2D$().position($position)
+```
 
 ### 🔄 State Binding
 
@@ -389,30 +285,135 @@ ColorPicker$().color($selectedColor)
 ColorPickerButton$().color($backgroundColor)
 ```
 
-### ⚡ Process Hooks
 
-Register callbacks for node lifecycle events.
+### 🔄 Dynamic Views
+
+**ForEach - Dynamic Lists:**
 
 ```swift
-// Called when node enters tree
-.onReady { node in
-  print("Node is ready!")
+@State var items: [Item] = []
+
+VBoxContainer$ {
+  ForEach($items, id: \.id) { item in
+    HBoxContainer$ {
+      Label$().text(item.wrappedValue.name)
+      Button$().text("Delete").onSignal(\.pressed) { _ in
+        items.removeAll { $0.id == item.wrappedValue.id }
+      }
+    }
+  }
 }
 
-// Called every frame
-.onProcess { node, delta in
-  node.position.x += 100 * delta
+// For Identifiable types, no need to specify id
+ForEach($items) { item in
+  ItemRow(item: item)
 }
 
-// Called every physics frame
-.onPhysicsProcess { node, delta in
-  // Physics updates
+// Modes: .standard (default) or .deferred (batches updates)
+ForEach($items, mode: .deferred) { item in
+  // ...
 }
 ```
 
-## Event System
+**If - Conditional Rendering:**
 
-### 📢 EventBus
+```swift
+@State var showDetails = false
+
+VBoxContainer$ {
+  Button$()
+    .text("Toggle")
+    .onSignal(\.pressed) { _ in showDetails.toggle() }
+
+  If($showDetails) {
+    Label$().text("Details are visible!")
+  }
+  .Else {
+    Label$().text("Details are hidden")
+  }
+}
+```
+
+**If Modes:**
+
+```swift
+// .hide (default) - Toggles visible property (fast)
+If($condition) { /* ... */ }
+
+// .remove - Uses addChild/removeChild (cleaner tree)
+If($condition) { /* ... */ }.mode(.remove)
+
+// .destroy - Uses queueFree/rebuild (frees memory)
+If($condition) { /* ... */ }.mode(.destroy)
+```
+
+### 🎨 Theme Building
+
+Create themes declaratively from dictionaries with automatic camelCase to snake_case conversion.
+
+**Theme Dictionary Structure:**
+
+```swift
+let myTheme = Theme.build([
+  "Button": [
+    "colors": ["fontColor": Color.white],          // camelCase auto-converted
+    "constants": ["outlineSize": 2],
+    "fontSizes": ["fontSize": 16]
+  ],
+  "Label": [
+    "colors": ["font_color": Color.white],         // snake_case also works
+    "font_sizes": ["font_size": 14]
+  ]
+])
+
+// Apply theme to node
+Control$().theme(myTheme)
+```
+
+**Theme Categories:**
+- `colors` - Color properties (e.g., `fontColor`, `fontColorDisabled`)
+- `constants` - Integer constants (e.g., `outlineSize`, `separation`)
+- `fonts` - Font resources (e.g., `font`)
+- `fontSizes` - Font sizes (e.g., `fontSize`)
+- `icons` - Texture2D icons (e.g., `checked`, `unchecked`)
+- `styleBoxes` - StyleBox instances (e.g., `normal`, `hover`, `pressed`)
+
+**StyleBox Helpers:**
+
+```swift
+// Flat color
+.flat(color: Color.blue, contentMargin: 8)
+
+// With border
+.flat(
+  color: Color.blue,
+  borderColor: Color.white,
+  borderWidth: 2,
+  contentMargin: 8
+)
+
+// With rounded corners
+.flat(
+  color: Color.blue,
+  cornerRadius: 4,
+  contentMargin: 8
+)
+
+// Complete example
+let theme = Theme.build([
+  "Button": [
+    "colors": ["fontColor": Color.white],
+    "styleBoxes": [
+      "normal": .flat(color: Color.blue, cornerRadius: 4),
+      "hover": .flat(color: Color.cyan, cornerRadius: 4),
+      "pressed": .flat(color: Color.darkBlue, cornerRadius: 4)
+    ]
+  ]
+])
+```
+
+
+## 📢 EventBus
 
 Thread-safe publish/subscribe event bus for in-process messaging.
 
@@ -455,6 +456,55 @@ bus.tapLog(level: .debug, name: "GameEvents")
 // Different event types get different buses
 let gameBus = ServiceLocator.resolve(GameEvent.self)
 let uiBus = ServiceLocator.resolve(UIEvent.self)
+```
+
+## 🗄️ Store
+
+A uni-directional data store for managing application state with events and reducers.
+
+**Basic Setup:**
+
+```swift
+// Define your state
+struct GameState {
+  var playerHealth: Int = 100
+  var score: Int = 0
+  var level: Int = 1
+}
+
+// Define events that can change state
+enum GameEvent {
+  case takeDamage(Int)
+  case addScore(Int)
+}
+
+// Create a pure reducer function
+func gameReducer(state: inout GameState, event: GameEvent) {
+  switch event {
+  case .takeDamage(let amount):
+    state.playerHealth = max(0, state.playerHealth - amount)
+  case .addScore(let points):
+    state.score += points
+  }
+}
+
+// Create the store
+let store = Store(
+  initialState: GameState(),
+  reducer: gameReducer
+)
+
+// Send events to update state
+store.send(.takeDamage(20))
+store.send(.addScore(100))
+
+// Read current state
+print(store.state.playerHealth) // 80
+print(store.state.score)        // 100
+
+// Binding to views
+ProgressBar$().value(store.bind(\.playerHealth))
+Label$().text(store.bind(\.score)) { "Score: \($0)" }
 ```
 
 ## Input Actions
@@ -669,33 +719,6 @@ final class MainMenu: Node {
 }
 ```
 
-**Features:**
-- Type-safe signal connections using keypaths
-- Supports signals with 0-3 arguments (more argument counts available)
-- Node path resolution (relative to host node)
-- Optional connection flags (`.deferred`, `.oneShot`, etc.)
-- Handler receives typed sender as first parameter
-
-**Examples by Signal Type:**
-
-```swift
-// Zero arguments
-@OnSignal("Button", \Button.pressed)
-func onPressed(_ sender: Button) { }
-
-// One argument
-@OnSignal("Area", \Area2D.bodyEntered)
-func onBodyEntered(_ sender: Area2D, _ body: Node2D) { }
-
-// Two arguments
-@OnSignal("Area", \Area2D.bodyShapeEntered)
-func onShapeEntered(_ sender: Area2D, _ bodyRid: RID, _ body: Node2D) { }
-
-// With connection flags
-@OnSignal("Timer", \Timer.timeout, flags: [.oneShot, .deferred])
-func onTimeout(_ sender: Timer) { }
-```
-
 ## Utilities
 
 ### 📝 MsgLog
@@ -764,6 +787,9 @@ let parents: [Node2D] = node.getParents()
 // Convenience init
 let pos = Vector2(100, 200)
 
+// Even more convenient init - works as long as Vector2 can be inferred
+let pos: Vector2 = [100, 200]
+
 // Scalar multiplication (Float, Double, Int)
 let doubled = pos * 2
 let scaled = pos * 1.5
@@ -774,13 +800,6 @@ let scaled = pos * 1.5
 ### 🎨 AseSprite
 
 Loads and plays Aseprite animations directly in Godot.
-
-**Features:**
-- Loads Aseprite JSON + spritesheet exports
-- Maps Aseprite tags to Godot animations
-- Supports layer filtering
-- Handles trimmed frames with automatic offset
-- Multiple timing strategies
 
 ```swift
 // Basic usage
@@ -800,9 +819,3 @@ GNode<AseSprite>(path: "player", layer: "Main")
     sprite.play(anim: "Walk")
   }
 ```
-
-**Options:**
-- `timing`: `.uniformFPS`, `.exactDelays`, `.delaysGCD`
-- `trimming`: `.applyPivotOrCenter`, `.none`
-- Layer filtering for multi-layer exports
-- Tag filtering/mapping

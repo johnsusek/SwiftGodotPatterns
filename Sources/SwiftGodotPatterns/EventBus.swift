@@ -103,4 +103,27 @@ public enum ServiceLocator {
     map[key] = bus
     return bus
   }
+
+  /// Registers a value in the service locator.
+  ///
+  /// - Parameters:
+  ///   - type: The type to key the value by.
+  ///   - value: The value to register.
+  public static func register<T>(_ type: T.Type, value: Any) {
+    let key = ObjectIdentifier(T.self)
+    lock.lock()
+    defer { lock.unlock() }
+    map[key] = value
+  }
+
+  /// Retrieves a previously registered value.
+  ///
+  /// - Parameter type: The type the value was registered with.
+  /// - Returns: The registered value cast to the expected type, or nil if not found.
+  public static func retrieve<T, V>(_ type: T.Type) -> V? {
+    let key = ObjectIdentifier(T.self)
+    lock.lock()
+    defer { lock.unlock() }
+    return map[key] as? V
+  }
 }
