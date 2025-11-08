@@ -13,3 +13,6 @@ Examples/Sources/PlaygroundView.swift
 docs/
 **/.godot/
 **.uid
+**/GodotProject/bin/
+**/GodotProject/**.gdextension
+**/GodotProject/**.uid
