@@ -7,5 +7,6 @@ import SwiftGodotPatterns
     GEventRelay.self,
     GProcessRelay.self,
     PongGame.self,
+    BreakoutGame.self,
   ]
 )
