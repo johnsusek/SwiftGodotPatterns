@@ -10,28 +10,28 @@ final class PongGame: Node2D {
 }
 
 struct Themes {
-  let scoreLeft = Theme.build([
+  let scoreLeft = Theme([
     "Label": [
       "fontSizes": ["fontSize": 48],
       "colors": ["fontColor": Color(r: 0.3, g: 0.7, b: 1.0, a: 0.8)],
     ],
   ])
 
-  let scoreRight = Theme.build([
+  let scoreRight = Theme([
     "Label": [
       "fontSizes": ["fontSize": 48],
       "colors": ["fontColor": Color(r: 1.0, g: 0.3, b: 0.5, a: 0.8)],
     ],
   ])
 
-  let message = Theme.build([
+  let message = Theme([
     "Label": [
       "fontSizes": ["fontSize": 20],
       "colors": ["fontColor": Color.white],
     ],
   ])
 
-  let pause = Theme.build([
+  let pause = Theme([
     "Label": [
       "fontSizes": ["fontSize": 32],
       "colors": ["fontColor": Color.yellow],
@@ -80,41 +80,60 @@ struct PongGameView: GView {
         ])
 
       // Left paddle
-      Polygon2D$()
-        .color(Color(r: 0.3, g: 0.7, b: 1.0))
-        .bind(\.position, to: $leftPaddleY) { y in
-          [paddleMargin, y]
-        }
-        .polygon([
-          [0, 0],
-          [paddleWidth, 0],
-          [paddleWidth, paddleHeight],
-          [0, paddleHeight],
-        ])
+      StaticBody2D$ {
+        Polygon2D$()
+          .color(Color(r: 0.3, g: 0.7, b: 1.0))
+          .polygon([
+            [0, 0],
+            [paddleWidth, 0],
+            [paddleWidth, paddleHeight],
+            [0, paddleHeight],
+          ])
+
+        CollisionShape2D$()
+          .shape(RectangleShape2D(size: [paddleWidth, paddleHeight]))
+          .position([paddleWidth / 2, paddleHeight / 2])
+      }
+      .bind(\.position, to: $leftPaddleY) { y in
+        [paddleMargin, y]
+      }
 
       // Right paddle
-      Polygon2D$()
-        .color(Color(r: 1.0, g: 0.3, b: 0.5))
-        .bind(\.position, to: $rightPaddleY) { y in
-          [screenWidth - paddleMargin - paddleWidth, y]
-        }
-        .polygon([
-          [0, 0],
-          [paddleWidth, 0],
-          [paddleWidth, paddleHeight],
-          [0, paddleHeight],
-        ])
+      StaticBody2D$ {
+        Polygon2D$()
+          .color(Color(r: 1.0, g: 0.3, b: 0.5))
+          .polygon([
+            [0, 0],
+            [paddleWidth, 0],
+            [paddleWidth, paddleHeight],
+            [0, paddleHeight],
+          ])
+
+        CollisionShape2D$()
+          .shape(RectangleShape2D(size: [paddleWidth, paddleHeight]))
+          .position([paddleWidth / 2, paddleHeight / 2])
+      }
+      .bind(\.position, to: $rightPaddleY) { y in
+        [screenWidth - paddleMargin - paddleWidth, y]
+      }
 
       // Ball
-      Polygon2D$()
-        .color(Color.white)
-        .bind(\.position, to: $ballPos)
-        .polygon([
-          [0, 0],
-          [ballSize, 0],
-          [ballSize, ballSize],
-          [0, ballSize],
-        ])
+      CharacterBody2D$ {
+        Polygon2D$()
+          .color(Color.white)
+          .polygon([
+            [0, 0],
+            [ballSize, 0],
+            [ballSize, ballSize],
+            [0, ballSize],
+          ])
+
+        CollisionShape2D$()
+          .shape(RectangleShape2D(size: [ballSize, ballSize]))
+          .position([ballSize / 2, ballSize / 2])
+      }
+      .bind(\.position, to: $ballPos)
+      .bind(\.velocity, to: $ballVel)
 
       // Score UI overlay
       CanvasLayer$ {
@@ -164,13 +183,12 @@ struct PongGameView: GView {
         Action("start") { Key(.space) }
       }.install()
     }
-    .onProcess { _, delta in
+    .onProcess { node, delta in
       handleInput(delta)
 
       if !gameStarted || isPaused { return }
 
-      updateBall(delta)
-      checkCollisions()
+      updateBall(node, delta)
       checkScoring()
     }
   }
@@ -205,69 +223,49 @@ struct PongGameView: GView {
     }
   }
 
-  func updateBall(_ delta: Double) {
-    ballPos = ballPos + ballVel * Float(delta)
-  }
+  func updateBall(_ node: Node, _ delta: Double) {
+    // Find the ball CharacterBody2D
+    guard let ball: CharacterBody2D = node.getChild() else {
+      return
+    }
 
-  func checkCollisions() {
-    // Top/bottom wall collision
-    if ballPos.y <= 0 {
-      ballPos = [ballPos.x, 0]
+    // Use move_and_collide for physics-based movement
+    let motion = ballVel * Float(delta)
+    let collision = ball.moveAndCollide(motion: motion)
+
+    if let collision = collision {
+      // Handle collision with Godot's built-in collision response
+      let normal = collision.getNormal()
+
+      // Reflect velocity
+      ballVel = ballVel.bounce(n: normal)
+
+      // Add spin if hitting a paddle
+      if let collider = collision.getCollider() as? StaticBody2D {
+        // Calculate where on paddle we hit (0 to 1)
+        let paddlePos = collider.position
+        let hitY = ball.position.y + ballSize / 2
+        let hitPos = (hitY - paddlePos.y) / paddleHeight
+        let spinFactor = (hitPos - 0.5) * 2 // -1 to 1
+
+        // Add spin and speed up slightly
+        ballVel = [
+          ballVel.x * 1.05,
+          ballVel.y + spinFactor * 100,
+        ]
+      }
+    }
+
+    // Top/bottom wall collision (simple bounds check)
+    if ball.position.y <= 0 {
+      ball.position = [ball.position.x, 0]
       ballVel = [ballVel.x, abs(ballVel.y)]
-    } else if ballPos.y >= screenHeight - ballSize {
-      ballPos = [ballPos.x, screenHeight - ballSize]
+    } else if ball.position.y >= screenHeight - ballSize {
+      ball.position = [ball.position.x, screenHeight - ballSize]
       ballVel = [ballVel.x, -abs(ballVel.y)]
     }
 
-    // Paddle collisions
-    let leftPaddleX = paddleMargin
-    let rightPaddleX = screenWidth - paddleMargin - paddleWidth
-
-    checkPaddleCollision(
-      paddleX: leftPaddleX,
-      paddleY: leftPaddleY,
-      isLeftPaddle: true
-    )
-
-    checkPaddleCollision(
-      paddleX: rightPaddleX,
-      paddleY: rightPaddleY,
-      isLeftPaddle: false
-    )
-  }
-
-  func checkPaddleCollision(paddleX: Float, paddleY: Float, isLeftPaddle: Bool) {
-    let ballRight = ballPos.x + ballSize
-    let ballBottom = ballPos.y + ballSize
-
-    // Check if ball overlaps with paddle
-    let overlapsHorizontally = isLeftPaddle
-      ? (ballPos.x <= paddleX + paddleWidth && ballRight >= paddleX)
-      : (ballRight >= paddleX && ballPos.x <= paddleX + paddleWidth)
-
-    let overlapsVertically = ballBottom >= paddleY && ballPos.y <= paddleY + paddleHeight
-
-    guard overlapsHorizontally && overlapsVertically else { return }
-
-    // Calculate hit position and spin
-    let hitPos = (ballPos.y + ballSize / 2 - paddleY) / paddleHeight
-    let spinFactor = (hitPos - 0.5) * 2 // -1 to 1
-
-    // Update velocity with reflection and spin
-    let xVelocity = isLeftPaddle
-      ? abs(ballVel.x) * 1.05
-      : -abs(ballVel.x) * 1.05
-
-    ballVel = [
-      xVelocity,
-      ballVel.y + spinFactor * 100,
-    ]
-
-    // Reposition ball to prevent getting stuck in paddle
-    ballPos = [
-      isLeftPaddle ? paddleX + paddleWidth : paddleX - ballSize,
-      ballPos.y,
-    ]
+    ballPos = ball.position
   }
 
   func checkScoring() {

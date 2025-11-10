@@ -13,7 +13,7 @@ public extension Node {
   /// ```swift
   /// let dinos = getTree()?.getNodesInGroup("dinosaurs").compactMap { $0 as? Dino } ?? []
   /// ```
-  func nodes<T: Node>(inGroup name: StringName, as _: T.Type = T.self) -> [T] {
+  func getNodes<T: Node>(inGroup name: StringName, as _: T.Type = T.self) -> [T] {
     guard let arr = getTree()?.getNodesInGroup(name) else { return [] }
     return arr.compactMap { $0 as? T }
   }
@@ -78,5 +78,143 @@ public extension Node {
       cur = p.getParent()
     }
     return parents
+  }
+
+  // MARK: - Metadata Queries
+
+  /// Query all children recursively that have metadata matching a key-value pair.
+  ///
+  /// ### Usage:
+  /// ```swift
+  /// // Find all nodes with metadata "type" = "coin_spawn"
+  /// let coinSpawns: [Node2D] = root.queryMeta(key: "type", value: "coin_spawn")
+  /// let valuable: [Node2D] = root.queryMeta(key: "value", value: 100)
+  /// ```
+  func queryMeta<T: Node>(
+    key: String,
+    value: Variant,
+    as _: T.Type = T.self
+  ) -> [T] {
+    var results: [T] = []
+    queryMetaRecursive(key: key, value: value, node: self, results: &results)
+    return results
+  }
+
+  /// Query all children recursively that have string metadata matching a key-value pair.
+  func queryMeta<T: Node>(
+    key: String,
+    value: String,
+    as _: T.Type = T.self
+  ) -> [T] {
+    queryMeta(key: key, value: Variant(value))
+  }
+
+  /// Query all children recursively that have integer metadata matching a key-value pair.
+  func queryMeta<T: Node>(
+    key: String,
+    value: Int,
+    as _: T.Type = T.self
+  ) -> [T] {
+    queryMeta(key: key, value: Variant(value))
+  }
+
+  /// Query all children recursively that have boolean metadata matching a key-value pair.
+  func queryMeta<T: Node>(
+    key: String,
+    value: Bool,
+    as _: T.Type = T.self
+  ) -> [T] {
+    queryMeta(key: key, value: Variant(value))
+  }
+
+  /// Query all children recursively that have floating-point metadata matching a key-value pair.
+  func queryMeta<T: Node>(
+    key: String,
+    value: Double,
+    as _: T.Type = T.self
+  ) -> [T] {
+    queryMeta(key: key, value: Variant(value))
+  }
+
+  private func queryMetaRecursive<T: Node>(
+    key: String,
+    value: Variant,
+    node: Node,
+    results: inout [T]
+  ) {
+    // Check if this node matches
+    let keyName = StringName(key)
+    if node.hasMeta(name: keyName) {
+      if let metaValue = node.getMeta(name: keyName, default: nil) {
+        if metaValue == value, let typedNode = node as? T {
+          results.append(typedNode)
+        }
+      }
+    }
+
+    // Recursively check children
+    for maybeChild in node.getChildren() {
+      guard let child = maybeChild else { continue }
+      queryMetaRecursive(key: key, value: value, node: child, results: &results)
+    }
+  }
+
+  /// Query all children recursively that have a specific metadata key (any value).
+  ///
+  /// ### Usage:
+  /// ```swift
+  /// let spawners: [Node2D] = root.queryMetaKey("spawn_point")
+  /// ```
+  func queryMetaKey<T: Node>(_ key: String, as _: T.Type = T.self) -> [T] {
+    var results: [T] = []
+    queryMetaKeyRecursive(key: key, node: self, results: &results)
+    return results
+  }
+
+  private func queryMetaKeyRecursive<T: Node>(
+    key: String,
+    node: Node,
+    results: inout [T]
+  ) {
+    if node.hasMeta(name: StringName(key)), let typedNode = node as? T {
+      results.append(typedNode)
+    }
+
+    for maybeChild in node.getChildren() {
+      guard let child = maybeChild else { continue }
+      queryMetaKeyRecursive(key: key, node: child, results: &results)
+    }
+  }
+
+  /// Safely get metadata value with type casting.
+  ///
+  /// ### Usage:
+  /// ```swift
+  /// let coinValue: Int? = node.getMetaValue("coin_value")
+  /// let spawnType: String? = node.getMetaValue("type")
+  /// ```
+  func getMetaValue<T>(_ key: String) -> T? {
+    let keyName = StringName(key)
+    guard hasMeta(name: keyName) else { return nil }
+    guard let variant = getMeta(name: keyName, default: nil) else { return nil }
+
+    // Try common types
+    if T.self == Int.self {
+      return Int(variant) as? T
+    } else if T.self == String.self {
+      return String(variant) as? T
+    } else if T.self == Double.self {
+      return Double(variant) as? T
+    } else if T.self == Float.self {
+      return Float(variant) as? T
+    } else if T.self == Bool.self {
+      return Bool(variant) as? T
+    } else if T.self == Vector2.self {
+      return Vector2(variant) as? T
+    } else if T.self == Vector3.self {
+      return Vector3(variant) as? T
+    }
+
+    return nil
   }
 }

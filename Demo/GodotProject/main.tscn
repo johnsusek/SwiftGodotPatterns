@@ -1,2 +1,3 @@
-[gd_scene format=3]
-[node name="Root" type="BreakoutGame"]
+[gd_scene format=3 uid="uid://clib0jlly548m"]
+
+[node name="Root" type="PlatformerGame"]

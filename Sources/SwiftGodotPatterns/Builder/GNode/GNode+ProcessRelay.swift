@@ -45,6 +45,28 @@ public extension GNode where T: Node {
     s.ops.append { host in _attachOrUpdateRelay(host, onPhysics: body) }
     return s
   }
+
+  /// Captures a reference to the node when it's ready.
+  ///
+  /// ### Usage:
+  /// ```swift
+  /// @State var playerNode: CharacterBody2D?
+  ///
+  /// CharacterBody2D$()
+  ///   .ref($playerNode)
+  /// ```
+  ///
+  /// Equivalent to:
+  /// ```swift
+  /// .onReady { node in
+  ///   playerNode = node
+  /// }
+  /// ```
+  func ref(_ binding: GState<T?>) -> Self {
+    onReady { node in
+      binding.wrappedValue = node
+    }
+  }
 }
 
 // safe because constant value

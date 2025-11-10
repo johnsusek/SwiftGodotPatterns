@@ -11,28 +11,28 @@ final class BreakoutGame: Node2D {
 }
 
 struct BreakoutThemes {
-  let score = Theme.build([
+  let score = Theme([
     "Label": [
       "fontSizes": ["fontSize": 24],
       "colors": ["fontColor": Color.white],
     ],
   ])
 
-  let message = Theme.build([
+  let message = Theme([
     "Label": [
       "fontSizes": ["fontSize": 28],
       "colors": ["fontColor": Color.white],
     ],
   ])
 
-  let gameOver = Theme.build([
+  let gameOver = Theme([
     "Label": [
       "fontSizes": ["fontSize": 48],
       "colors": ["fontColor": Color.red],
     ],
   ])
 
-  let victory = Theme.build([
+  let victory = Theme([
     "Label": [
       "fontSizes": ["fontSize": 48],
       "colors": ["fontColor": Color.green],
@@ -85,40 +85,64 @@ struct BreakoutGameView: GView {
       .layer(-1)
 
       // Paddle
-      Polygon2D$()
-        .color(Color(r: 0.2, g: 0.6, b: 1.0))
-        .bind(\.position, to: $paddleX) { x in
-          [x, screenHeight - 50]
-        }
-        .polygon([
-          [0, 0],
-          [paddleWidth, 0],
-          [paddleWidth, paddleHeight],
-          [0, paddleHeight],
-        ])
+      StaticBody2D$ {
+        Polygon2D$()
+          .color(Color(r: 0.2, g: 0.6, b: 1.0))
+          .polygon([
+            [0, 0],
+            [paddleWidth, 0],
+            [paddleWidth, paddleHeight],
+            [0, paddleHeight],
+          ])
+
+        CollisionShape2D$()
+          .shape(RectangleShape2D(size: [paddleWidth, paddleHeight]))
+          .position([paddleWidth / 2, paddleHeight / 2])
+      }
+      .bind(\.position, to: $paddleX) { x in
+        [x, screenHeight - 50]
+      }
 
       // Ball
-      Polygon2D$()
-        .color(Color.white)
-        .bind(\.position, to: $ballPos)
-        .polygon([
-          [0, 0],
-          [ballSize, 0],
-          [ballSize, ballSize],
-          [0, ballSize],
-        ])
+      CharacterBody2D$ {
+        Polygon2D$()
+          .color(Color.white)
+          .polygon([
+            [0, 0],
+            [ballSize, 0],
+            [ballSize, ballSize],
+            [0, ballSize],
+          ])
+
+        CollisionShape2D$()
+          .shape(RectangleShape2D(size: [ballSize, ballSize]))
+          .position([ballSize / 2, ballSize / 2])
+      }
+      .bind(\.position, to: $ballPos)
+      .bind(\.velocity, to: $ballVel)
 
       // Bricks
       ForEach($bricks, mode: .deferred) { brick in
-        Polygon2D$()
-          .position(brick.wrappedValue.position)
-          .color(brick.wrappedValue.color)
-          .polygon([
-            [0, 0],
-            [brickWidth, 0],
-            [brickWidth, brickHeight],
-            [0, brickHeight],
-          ])
+        Area2D$ {
+          Polygon2D$()
+            .color(brick.wrappedValue.color)
+            .polygon([
+              [0, 0],
+              [brickWidth, 0],
+              [brickWidth, brickHeight],
+              [0, brickHeight],
+            ])
+
+          CollisionShape2D$()
+            .shape(RectangleShape2D(size: [brickWidth, brickHeight]))
+            .position([brickWidth / 2, brickHeight / 2])
+        }
+        .position(brick.wrappedValue.position)
+        .onSignal(\.bodyEntered) { area, body in
+          if body is CharacterBody2D {
+            handleBrickCollision(brickId: brick.wrappedValue.id)
+          }
+        }
       }
 
       // UI Overlay
@@ -197,13 +221,12 @@ struct BreakoutGameView: GView {
 
       initializeBricks()
     }
-    .onProcess { _, delta in
+    .onProcess { node, delta in
       handleInput(delta)
 
       if !gameStarted || gameOver || victory { return }
 
-      updateBall(delta)
-      checkCollisions()
+      updateBall(node, delta)
     }
   }
 
@@ -269,30 +292,55 @@ struct BreakoutGameView: GView {
 
   // MARK: - Ball Physics
 
-  func updateBall(_ delta: Double) {
-    ballPos = ballPos + ballVel * Float(delta)
-  }
+  func updateBall(_ node: Node, _ delta: Double) {
+    // Find the ball CharacterBody2D
+    guard let ball: CharacterBody2D = node.getChild() else {
+      return
+    }
 
-  // MARK: - Collision Detection
+    // Use move_and_collide for physics-based movement
+    let motion = ballVel * Float(delta)
+    let collision = ball.moveAndCollide(motion: motion)
 
-  func checkCollisions() {
+    if let collision = collision {
+      // Handle collision with Godot's built-in collision response
+      let normal = collision.getNormal()
+
+      // Reflect velocity
+      ballVel = ballVel.bounce(n: normal)
+
+      // Add angle variation if hitting a paddle
+      if let _ = collision.getCollider() as? StaticBody2D {
+        // Calculate hit position for angle variation
+        let hitPos = (ball.position.x + ballSize / 2 - paddleX) / paddleWidth
+        let angle = (hitPos - 0.5) * 2 // -1 to 1
+
+        // Update velocity with angle
+        let speed = sqrt(ballVel.x * ballVel.x + ballVel.y * ballVel.y)
+        ballVel = [
+          angle * speed * 0.7,
+          -abs(ballVel.y),
+        ]
+      }
+    }
+
     // Wall collisions
-    if ballPos.x <= 0 {
-      ballPos = [0, ballPos.y]
+    if ball.position.x <= 0 {
+      ball.position = [0, ball.position.y]
       ballVel = [abs(ballVel.x), ballVel.y]
-    } else if ballPos.x >= screenWidth - ballSize {
-      ballPos = [screenWidth - ballSize, ballPos.y]
+    } else if ball.position.x >= screenWidth - ballSize {
+      ball.position = [screenWidth - ballSize, ball.position.y]
       ballVel = [-abs(ballVel.x), ballVel.y]
     }
 
     // Top wall
-    if ballPos.y <= 0 {
-      ballPos = [ballPos.x, 0]
+    if ball.position.y <= 0 {
+      ball.position = [ball.position.x, 0]
       ballVel = [ballVel.x, abs(ballVel.y)]
     }
 
     // Bottom - lose a life
-    if ballPos.y >= screenHeight {
+    if ball.position.y >= screenHeight {
       lives -= 1
       if lives <= 0 {
         gameOver = true
@@ -302,76 +350,21 @@ struct BreakoutGameView: GView {
       return
     }
 
-    // Paddle collision
-    checkPaddleCollision()
-
-    // Brick collisions
-    checkBrickCollisions()
+    ballPos = ball.position
   }
 
-  func checkPaddleCollision() {
-    let paddleY = screenHeight - 50
-    let ballRight = ballPos.x + ballSize
-    let ballBottom = ballPos.y + ballSize
+  // MARK: - Collision Handlers
 
-    let overlapsHorizontally = ballRight >= paddleX && ballPos.x <= paddleX + paddleWidth
-    let overlapsVertically = ballBottom >= paddleY && ballPos.y <= paddleY + paddleHeight
-
-    guard overlapsHorizontally && overlapsVertically && ballVel.y > 0 else { return }
-
-    // Calculate hit position for angle variation
-    let hitPos = (ballPos.x + ballSize / 2 - paddleX) / paddleWidth
-    let angle = (hitPos - 0.5) * 2 // -1 to 1
-
-    // Update velocity
-    let speed = sqrt(ballVel.x * ballVel.x + ballVel.y * ballVel.y)
-    ballVel = [
-      angle * speed * 0.7,
-      -abs(ballVel.y),
-    ]
-
-    // Reposition ball above paddle
-    ballPos = [ballPos.x, paddleY - ballSize]
-  }
-
-  func checkBrickCollisions() {
-    let ballRight = ballPos.x + ballSize
-    let ballBottom = ballPos.y + ballSize
-
-    for (index, brick) in bricks.enumerated() {
-      let brickRight = brick.position.x + brickWidth
-      let brickBottom = brick.position.y + brickHeight
-
-      // Check overlap
-      let overlapsHorizontally = ballRight >= brick.position.x && ballPos.x <= brickRight
-      let overlapsVertically = ballBottom >= brick.position.y && ballPos.y <= brickBottom
-
-      guard overlapsHorizontally && overlapsVertically else { continue }
-
-      // Determine collision side
-      let fromLeft = ballRight - brick.position.x
-      let fromRight = brickRight - ballPos.x
-      let fromTop = ballBottom - brick.position.y
-      let fromBottom = brickBottom - ballPos.y
-
-      let minDist = min(fromLeft, fromRight, fromTop, fromBottom)
-
-      if minDist == fromTop || minDist == fromBottom {
-        ballVel = [ballVel.x, -ballVel.y]
-      } else {
-        ballVel = [-ballVel.x, ballVel.y]
-      }
-
-      // Remove brick and update score
-      score += brick.points
+  func handleBrickCollision(brickId: Int) {
+    // Find and remove the brick
+    if let index = bricks.firstIndex(where: { $0.id == brickId }) {
+      score += bricks[index].points
       bricks.remove(at: index)
 
       // Check for level complete
       if bricks.isEmpty {
         victory = true
       }
-
-      break // Only handle one collision per frame
     }
   }
 

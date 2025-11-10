@@ -161,4 +161,61 @@ public extension GNode {
 
     return set(kp, e)
   } }
+
+  // MARK: - Metadata
+
+  /// Sets metadata on the node with a Variant value.
+  ///
+  /// ### Usage:
+  /// ```swift
+  /// Node2D$()
+  ///   .metadata("type", "coin_spawn")
+  ///   .metadata("value", 10)
+  ///   .metadata("position", Vector2(x: 100, y: 200))
+  /// ```
+  func metadata(_ key: String, _ value: Variant) -> Self {
+    configure { node in
+      node.setMeta(name: StringName(key), value: value)
+    }
+  }
+
+  /// Sets string metadata on the node.
+  func metadata(_ key: String, _ value: String) -> Self {
+    metadata(key, Variant(value))
+  }
+
+  /// Sets integer metadata on the node.
+  func metadata(_ key: String, _ value: Int) -> Self {
+    metadata(key, Variant(value))
+  }
+
+  /// Sets floating-point metadata on the node.
+  func metadata(_ key: String, _ value: Double) -> Self {
+    metadata(key, Variant(value))
+  }
+
+  /// Sets floating-point metadata on the node.
+  func metadata(_ key: String, _ value: Float) -> Self {
+    metadata(key, Variant(Double(value)))
+  }
+
+  /// Sets boolean metadata on the node.
+  func metadata(_ key: String, _ value: Bool) -> Self {
+    metadata(key, Variant(value))
+  }
+
+  /// Sets Vector2 metadata on the node.
+  func metadata(_ key: String, _ value: Vector2) -> Self {
+    metadata(key, Variant(value))
+  }
+
+  /// Sets Vector3 metadata on the node.
+  func metadata(_ key: String, _ value: Vector3) -> Self {
+    metadata(key, Variant(value))
+  }
+
+  /// Sets Color metadata on the node.
+  func metadata(_ key: String, _ value: Color) -> Self {
+    metadata(key, Variant(value))
+  }
 }

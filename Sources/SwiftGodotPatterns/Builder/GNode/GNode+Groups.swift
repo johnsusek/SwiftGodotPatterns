@@ -26,9 +26,9 @@ public extension GNode {
   ///
   /// ### Usage:
   /// ```swift
-  /// Node2D$().instanceScene("scenes/enemy.tscn")
+  /// Node2D$().fromScene("scenes/enemy.tscn")
   /// ```
-  func instanceScene(_ path: String, configure: ((Node) -> Void)? = nil) -> Self {
+  func fromScene(_ path: String, configure: ((Node) -> Void)? = nil) -> Self {
     withResource(path, as: PackedScene.self) { host, scene in
       guard let child = scene.instantiate() else { return }
       configure?(child)

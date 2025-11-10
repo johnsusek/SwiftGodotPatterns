@@ -42,5 +42,10 @@ let package = Package(
             ],
             plugins: ["GenNodeApi"]
         ),
+
+        .testTarget(
+            name: "SwiftGodotPatternsTests",
+            dependencies: ["SwiftGodotPatterns"]
+        ),
     ]
 )

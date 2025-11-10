@@ -1,5 +1,5 @@
-import SwiftGodot
 import Foundation
+import SwiftGodot
 
 /// Theme dictionary extensions.
 ///
@@ -20,7 +20,6 @@ import Foundation
 /// ])
 /// ```
 public extension Theme {
-
   /// Creates a theme from a dictionary structure.
   ///
   /// The dictionary structure supports both camelCase and snake_case keys.
@@ -41,11 +40,9 @@ public extension Theme {
   /// ```
   ///
   /// - Parameter dict: Dictionary mapping control types to their theme properties
-  /// - Returns: A configured Theme instance
-  static func build(_ dict: [String: [String: Any]]) -> Theme {
-    let theme = Theme()
-    theme.applyDict(dict)
-    return theme
+  convenience init(_ dict: [String: [String: Any]]) {
+    self.init()
+    applyDict(dict)
   }
 
   /// Applies theme properties from a dictionary structure.

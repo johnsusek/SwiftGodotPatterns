@@ -10,9 +10,16 @@ Examples/GodotProject/.godot
 Examples/GodotProject/*.import
 .vscode/
 Examples/Sources/PlaygroundView.swift
-docs/
+docs/.vuepress/dist/
+docs/.vuepress/.cache/
+docs/.vuepress/.temp/
+.vitepress/dist/
+.vitepress/cache/
+node_modules/
+package-lock.json
 **/.godot/
 **.uid
 **/GodotProject/bin/
 **/GodotProject/**.gdextension
 **/GodotProject/**.uid
+**/GodotProject/**.import

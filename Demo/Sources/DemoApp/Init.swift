@@ -8,5 +8,7 @@ import SwiftGodotPatterns
     GProcessRelay.self,
     PongGame.self,
     BreakoutGame.self,
+    SpaceInvadersGame.self,
+    PlatformerGame.self,
   ]
 )

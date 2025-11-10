@@ -1,5 +1,5 @@
 
-<a href="#"><img src="media/patterns.png?raw=true" width="210" align="right" title="Pictured: Ancient Roman seamstress at a loom, holding a shuttle."></a>
+<a href="#"><img src="https://github.com/johnsusek/SwiftGodotPatterns/raw/main/media/patterns.png?raw=true" width="210" align="right" title="Pictured: Ancient Roman seamstress at a loom, holding a shuttle."></a>
 
 ### SwiftGodotPatterns
 
@@ -99,7 +99,7 @@ Manage node groups and instantiate packed scenes.
 .groups(["enemies", "damageable"])
 
 // Instance a packed scene as child
-.instanceScene("scenes/enemy.tscn") { child in
+.fromScene("scenes/enemy.tscn") { child in
     // Optional: configure the instanced node
 }
 ```
@@ -204,6 +204,13 @@ Register callbacks for node lifecycle events.
 .onPhysicsProcess { node, delta in
   // Physics updates
 }
+
+// Capture node reference
+@State var playerNode: CharacterBody2D?
+
+CharacterBody2D$()
+  .ref($playerNode)
+// replaces: .onReady { node in playerNode = node }
 ```
 
 ## 📦 State Management
@@ -351,67 +358,22 @@ If($condition) { /* ... */ }.mode(.destroy)
 
 Create themes declaratively from dictionaries with automatic camelCase to snake_case conversion.
 
-**Theme Dictionary Structure:**
-
 ```swift
-let myTheme = Theme.build([
+let myTheme = Theme([
   "Button": [
-    "colors": ["fontColor": Color.white],          // camelCase auto-converted
+    "colors": ["fontColor": Color.white],
     "constants": ["outlineSize": 2],
     "fontSizes": ["fontSize": 16]
   ],
   "Label": [
-    "colors": ["font_color": Color.white],         // snake_case also works
-    "font_sizes": ["font_size": 14]
+    "colors": ["fontColor": Color.white],
+    "fontSizes": ["fontSize": 14]
   ]
 ])
 
 // Apply theme to node
 Control$().theme(myTheme)
 ```
-
-**Theme Categories:**
-- `colors` - Color properties (e.g., `fontColor`, `fontColorDisabled`)
-- `constants` - Integer constants (e.g., `outlineSize`, `separation`)
-- `fonts` - Font resources (e.g., `font`)
-- `fontSizes` - Font sizes (e.g., `fontSize`)
-- `icons` - Texture2D icons (e.g., `checked`, `unchecked`)
-- `styleBoxes` - StyleBox instances (e.g., `normal`, `hover`, `pressed`)
-
-**StyleBox Helpers:**
-
-```swift
-// Flat color
-.flat(color: Color.blue, contentMargin: 8)
-
-// With border
-.flat(
-  color: Color.blue,
-  borderColor: Color.white,
-  borderWidth: 2,
-  contentMargin: 8
-)
-
-// With rounded corners
-.flat(
-  color: Color.blue,
-  cornerRadius: 4,
-  contentMargin: 8
-)
-
-// Complete example
-let theme = Theme.build([
-  "Button": [
-    "colors": ["fontColor": Color.white],
-    "styleBoxes": [
-      "normal": .flat(color: Color.blue, cornerRadius: 4),
-      "hover": .flat(color: Color.cyan, cornerRadius: 4),
-      "pressed": .flat(color: Color.darkBlue, cornerRadius: 4)
-    ]
-  ]
-])
-```
-
 
 ## 📢 EventBus
 
@@ -561,9 +523,31 @@ Actions {
 // Creates actions: move_up, move_down, move_left, move_right
 ```
 
+### 🎯 Runtime Polling
+
+```swift
+// Query action state
+if Action("jump").isJustPressed {
+  player.jump()
+}
+
+if Action("shoot").isPressed {
+  player.shoot(Action("shoot").strength)
+}
+
+// Axis helpers
+let horizontal = RuntimeAction.axis(negative: "move_left", positive: "move_right")
+let movement = RuntimeAction.vector(
+  negativeX: "move_left",
+  positiveX: "move_right",
+  negativeY: "move_up",
+  positiveY: "move_down"
+)
+```
+
 ## Property Wrappers
 
-For node references and dependency injection. Call `bindProps()` in `_ready()` to activate.
+Call `bindProps()` in `_ready()` to activate.
 
 ### 👶 @Child - Single Child Reference
 
@@ -756,7 +740,7 @@ if let tree = Engine.getSceneTree() {
   // ...
 }
 
-// Schedule next frame callback
+// Schedule next frame callback aka deferred
 Engine.onNextFrame {
   print("Next frame!")
 }
@@ -771,14 +755,28 @@ Engine.onNextPhysicsFrame {
 ```swift
 // Typed node queries
 let sprites: [Sprite2D] = node.getChildren()
+// replaces: node.getChildren().compactMap { $0 as? Sprite2D }
+
 let firstSprite: Sprite2D? = node.getChild()
+// replaces: node.getChildren().first(where: { $0 is Sprite2D }) as? Sprite2D
+
 let enemySprite: Sprite2D? = node.getNode("Enemy")
+// replaces: node.getNode(path: NodePath("Enemy")) as? Sprite2D
 
 // Group queries
-let enemies: [Enemy] = node.nodes(inGroup: "enemies")
+let enemies: [Enemy] = node.getNodes(inGroup: "enemies")
+// replaces: node.getTree()?.getNodesInGroup("enemies").compactMap { $0 as? Enemy } ?? []
 
 // Parent chain
 let parents: [Node2D] = node.getParents()
+
+// Metadata queries (recursive search)
+let coinSpawns: [Node2D] = root.queryMeta(key: "type", value: "coin_spawn")
+let valuable: [Node2D] = root.queryMeta(key: "value", value: 100)
+let spawners: [Node2D] = root.queryMetaKey("spawn_point")  // any value
+
+// Get metadata safely
+let coinValue: Int? = node.getMetaValue("coin_value")
 ```
 
 **Vector2:**
@@ -787,12 +785,27 @@ let parents: [Node2D] = node.getParents()
 // Convenience init
 let pos = Vector2(100, 200)
 
-// Even more convenient init - works as long as Vector2 can be inferred
+// Array literal init
 let pos: Vector2 = [100, 200]
 
 // Scalar multiplication (Float, Double, Int)
 let doubled = pos * 2
 let scaled = pos * 1.5
+```
+
+**Shapes Inits:**
+
+Configure shapes directly from inits, helpful for passing to properties in views.
+
+```swift
+RectangleShape2D(w: 50, h: 100)
+CircleShape2D(radius: 25)
+CapsuleShape2D(radius: 10, height: 50)
+SegmentShape2D(a: [0, 0], b: [100, 100])
+SeparationRayShape2D(length: 100)
+WorldBoundaryShape2D(normal: [0, -1], distance: 0)
+ConvexPolygonShape2D(points: myPoints)
+ConcavePolygonShape2D(segments: mySegments)
 ```
 
 ## Components
