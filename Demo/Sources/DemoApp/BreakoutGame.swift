@@ -118,8 +118,8 @@ struct BreakoutGameView: GView {
           .shape(RectangleShape2D(size: [ballSize, ballSize]))
           .position([ballSize / 2, ballSize / 2])
       }
-      .bind(\.position, to: $ballPos)
-      .bind(\.velocity, to: $ballVel)
+      .position($ballPos)
+      .velocity($ballVel)
 
       // Bricks
       ForEach($bricks, mode: .deferred) { brick in
@@ -138,7 +138,7 @@ struct BreakoutGameView: GView {
             .position([brickWidth / 2, brickHeight / 2])
         }
         .position(brick.wrappedValue.position)
-        .onSignal(\.bodyEntered) { area, body in
+        .onSignal(\.bodyEntered) { _, body in
           if body is CharacterBody2D {
             handleBrickCollision(brickId: brick.wrappedValue.id)
           }
@@ -169,37 +169,34 @@ struct BreakoutGameView: GView {
           .theme(themes.score)
 
         // Start message
-        Control$ {
+        CenterContainer$ {
           Label$()
             .text("Press SPACE to start\nMove paddle with A/D or Arrow Keys")
-            .offsetLeft(Double(screenWidth / 2 - 250))
-            .offsetTop(Double(screenHeight / 2 - 30))
             .horizontalAlignment(.center)
             .theme(themes.message)
         }
+        .anchorsAndOffsets(.fullRect)
         .bind(\.visible, to: $gameStarted) { !$0 }
 
         // Game Over
-        Control$ {
+        CenterContainer$ {
           Label$()
             .text("GAME OVER\nPress SPACE to restart")
-            .offsetLeft(Double(screenWidth / 2 - 270))
-            .offsetTop(Double(screenHeight / 2 - 50))
             .horizontalAlignment(.center)
             .theme(themes.gameOver)
         }
-        .bind(\.visible, to: $gameOver)
+        .anchorsAndOffsets(.fullRect)
+        .visible($gameOver)
 
         // Victory
-        Control$ {
+        CenterContainer$ {
           Label$()
             .text("LEVEL COMPLETE!\nPress SPACE to continue")
-            .offsetLeft(Double(screenWidth / 2 - 220))
-            .offsetTop(Double(screenHeight / 2 - 50))
             .horizontalAlignment(.center)
             .theme(themes.victory)
         }
-        .bind(\.visible, to: $victory)
+        .anchorsAndOffsets(.fullRect)
+        .visible($victory)
       }
     }
     .onReady { _ in

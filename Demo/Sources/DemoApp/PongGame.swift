@@ -132,8 +132,8 @@ struct PongGameView: GView {
           .shape(RectangleShape2D(size: [ballSize, ballSize]))
           .position([ballSize / 2, ballSize / 2])
       }
-      .bind(\.position, to: $ballPos)
-      .bind(\.velocity, to: $ballVel)
+      .position($ballPos)
+      .velocity($ballVel)
 
       // Score UI overlay
       CanvasLayer$ {
@@ -152,25 +152,24 @@ struct PongGameView: GView {
           .theme(themes.scoreRight)
 
         // Start message
-        Control$ {
+        CenterContainer$ {
           Label$()
             .text("Press SPACE to start\nW/S and UP/DOWN to move paddles")
-            .offsetLeft(Double(screenWidth / 2 - 150))
-            .offsetTop(Double(screenHeight / 2 - 30))
             .horizontalAlignment(.center)
             .theme(themes.message)
         }
+        .anchorsAndOffsets(.fullRect)
         .bind(\.visible, to: $gameStarted) { !$0 }
 
         // Pause indicator
-        Control$ {
+        CenterContainer$ {
           Label$()
             .text("PAUSED")
-            .offsetLeft(Double(screenWidth / 2 - 50))
-            .offsetTop(Double(screenHeight / 2 + 50))
+            .horizontalAlignment(.center)
             .theme(themes.pause)
         }
-        .bind(\.visible, to: $isPaused)
+        .anchorsAndOffsets(.fullRect)
+        .visible($isPaused)
       }
     }
     .onReady { _ in

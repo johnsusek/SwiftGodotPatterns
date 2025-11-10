@@ -79,7 +79,7 @@ struct PlatformerGameView: GView {
           .theme(themes.score)
 
         // Start message
-        Control$ {
+        CenterContainer$ {
           VBoxContainer$ {
             Label$()
               .text("PLATFORMER")
@@ -96,10 +96,11 @@ struct PlatformerGameView: GView {
           .offsetLeft(Double(screenWidth / 2 - 150))
           .offsetTop(Double(screenHeight / 2 - 100))
         }
+        .anchorsAndOffsets(.fullRect)
         .bind(\.visible, to: $gameState) { $0 == .menu }
 
         // Victory message
-        Control$ {
+        CenterContainer$ {
           Label$()
             .text("YOU WIN!\nPress SPACE to restart")
             .offsetLeft(Double(screenWidth / 2 - 180))
@@ -107,6 +108,7 @@ struct PlatformerGameView: GView {
             .horizontalAlignment(.center)
             .theme(themes.gameOver)
         }
+        .anchorsAndOffsets(.fullRect)
         .bind(\.visible, to: $gameState) { $0 == .victory }
       }
     }

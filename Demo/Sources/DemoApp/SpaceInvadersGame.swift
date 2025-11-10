@@ -275,34 +275,34 @@ struct SpaceInvadersGameView: GView {
         Control$ {
           Label$()
             .text("SPACE INVADERS\n\nPress SPACE to start\nMove: A/D or Arrow Keys\nShoot: SPACE")
-            .offsetLeft(Double(screenWidth / 2 - 180))
-            .offsetTop(Double(screenHeight / 2 - 60))
+            .anchorsAndOffsets(.center)
             .horizontalAlignment(.center)
             .theme(themes.message)
         }
+        .anchorsAndOffsets(.fullRect)
         .bind(\.visible, to: $gameStarted) { !$0 }
 
         // Game Over
         Control$ {
           Label$()
             .bind(\.text, to: $score) { "GAME OVER\n\nFinal Score: \($0)\n\nPress SPACE to restart" }
-            .offsetLeft(Double(screenWidth / 2 - 200))
-            .offsetTop(Double(screenHeight / 2 - 80))
+            .anchorsAndOffsets(.center)
             .horizontalAlignment(.center)
             .theme(themes.gameOver)
         }
-        .bind(\.visible, to: $gameOver)
+        .anchorsAndOffsets(.fullRect)
+        .visible($gameOver)
 
         // Victory
         Control$ {
           Label$()
             .text("WAVE CLEARED!\n\nPress SPACE for next wave")
-            .offsetLeft(Double(screenWidth / 2 - 180))
-            .offsetTop(Double(screenHeight / 2 - 50))
+            .anchorsAndOffsets(.center)
             .horizontalAlignment(.center)
             .theme(themes.victory)
         }
-        .bind(\.visible, to: $victory)
+        .anchorsAndOffsets(.fullRect)
+        .visible($victory)
       }
     }
     .onReady { _ in

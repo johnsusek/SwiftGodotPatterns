@@ -6,6 +6,7 @@ import SwiftGodotPatterns
   types: [
     GEventRelay.self,
     GProcessRelay.self,
+    AsteroidsGame.self,
     PongGame.self,
     BreakoutGame.self,
     SpaceInvadersGame.self,
