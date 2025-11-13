@@ -109,7 +109,7 @@ public enum ServiceLocator {
   /// - Parameters:
   ///   - type: The type to key the value by.
   ///   - value: The value to register.
-  public static func register<T>(_ type: T.Type, value: Any) {
+  public static func register<T>(_: T.Type, value: Any) {
     let key = ObjectIdentifier(T.self)
     lock.lock()
     defer { lock.unlock() }
@@ -120,10 +120,36 @@ public enum ServiceLocator {
   ///
   /// - Parameter type: The type the value was registered with.
   /// - Returns: The registered value cast to the expected type, or nil if not found.
-  public static func retrieve<T, V>(_ type: T.Type) -> V? {
+  public static func retrieve<T, V>(_: T.Type) -> V? {
     let key = ObjectIdentifier(T.self)
     lock.lock()
     defer { lock.unlock() }
     return map[key] as? V
+  }
+}
+
+/// Protocol for events that can emit themselves to the service locator's event bus.
+///
+/// Conform your event enums to this protocol to enable self-emission via the `.emit()` method.
+///
+/// ### Example
+/// ```swift
+/// enum GameEvent: EmittableEvent {
+///   case score(Int)
+///   case playerDied
+/// }
+///
+/// // Usage:
+/// GameEvent.score(100).emit()
+/// ```
+public protocol EmittableEvent {
+  /// Emits this event to the shared event bus.
+  func emit()
+}
+
+public extension EmittableEvent {
+  /// Emits this event to the service locator's event bus for this event type.
+  func emit() {
+    ServiceLocator.resolve(Self.self).publish(self)
   }
 }
