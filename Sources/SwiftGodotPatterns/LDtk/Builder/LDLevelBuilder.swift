@@ -19,7 +19,7 @@ public struct LDLevelBuildConfig {
 
   /// Custom layer processor - called for each layer before building
   /// Return nil to skip the layer, or a custom node to use instead
-  public var onLayer: ((LDLayerInstance) -> Node?)?
+  public var onLayer: ((LDLayer) -> Node?)?
 
   public init() {}
 }

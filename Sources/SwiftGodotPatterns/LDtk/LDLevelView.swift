@@ -126,7 +126,7 @@ public struct LDLevelView: GView {
   }
 
   /// Add custom layer processor.
-  public func onLayer(_ processor: @escaping (LDLayerInstance) -> Node?) -> Self {
+  public func onLayer(_ processor: @escaping (LDLayer) -> Node?) -> Self {
     var view = self
     view.config.onLayer = processor
     return view

@@ -6,7 +6,7 @@ import SwiftSyntax
  # LDEnumGen
 
  Scans Swift source files for enums conforming to `LDExported` and generates
- an `ldtkEnums.json` file in the format LDtk expects:
+ an `LDExported.json` file in the format LDtk expects:
 
  ```json
  {

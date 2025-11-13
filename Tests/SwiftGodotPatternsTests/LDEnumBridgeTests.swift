@@ -50,7 +50,7 @@ final class LDtkEnumBridgeTests: XCTestCase {
   }
 
   // External enum generation is now handled by the GenLDEnums build plugin
-  // which generates ldtkEnums.json at build time
+  // which generates LDExported.json at build time
 
   func testEnumCaseSensitivity() throws {
     // LDtk enums are case-sensitive

@@ -126,20 +126,20 @@ final class LDFieldTests: XCTestCase {
   // MARK: - Field Collection Extension Tests
 
   func testFieldCollectionAccessors() {
-    let fields: [LDFieldInstance] = [
-      LDFieldInstance(
+    let fields: [LDField] = [
+      LDField(
         identifier: "health",
         type: "Int",
         value: .int(100),
         defUid: 1
       ),
-      LDFieldInstance(
+      LDField(
         identifier: "name",
         type: "String",
         value: .string("Player"),
         defUid: 2
       ),
-      LDFieldInstance(
+      LDField(
         identifier: "position",
         type: "Point",
         value: .point(LDPoint(cx: 5, cy: 10)),
@@ -154,8 +154,8 @@ final class LDFieldTests: XCTestCase {
   }
 
   func testFieldVector2Accessor() {
-    let fields: [LDFieldInstance] = [
-      LDFieldInstance(
+    let fields: [LDField] = [
+      LDField(
         identifier: "spawnPoint",
         type: "Point",
         value: .point(LDPoint(cx: 10, cy: 20)),

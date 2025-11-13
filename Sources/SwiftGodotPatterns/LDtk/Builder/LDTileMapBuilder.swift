@@ -21,7 +21,7 @@ public class LDTileMapBuilder {
   ///   - layer: The LDtk layer instance
   ///   - zIndex: Optional z-index for the layer (defaults to 0)
   /// - Returns: Configured Node2D (TileMapLayer or container with multiple TileMapLayers), or nil if not a tile layer
-  public func buildTileMapLayer(from layer: LDLayerInstance, zIndex: Int32 = 0) -> Node2D? {
+  public func buildTileMapLayer(from layer: LDLayer, zIndex: Int32 = 0) -> Node2D? {
     // Get tileset definition - if the layer has a tileset, it can render tiles
     // This includes: Tiles layers, AutoLayer layers, and IntGrid layers with auto-tiles
     guard let tilesetDefUid = layer.tilesetDefUid else {
@@ -107,7 +107,7 @@ public class LDTileMapBuilder {
   private func createTileMapLayer(
     name: String,
     tileSet: TileSet,
-    layer: LDLayerInstance,
+    layer: LDLayer,
     zIndex: Int32
   ) -> TileMapLayer {
     let tileMapLayer = TileMapLayer()
@@ -273,7 +273,7 @@ public class LDTileMapBuilder {
   ///     Example: ["walls": 1, nil: 0] maps "walls" group to layer 1, ungrouped to layer 0
   /// - Returns: Container Node2D with multiple TileMapLayers (one per group)
   public func buildCollisionLayerByGroups(
-    from layer: LDLayerInstance,
+    from layer: LDLayer,
     groupToPhysicsLayer: [String?: Int]
   ) -> Node2D? {
     guard layer.type == .intGrid else {
@@ -347,7 +347,7 @@ public class LDTileMapBuilder {
 
   /// Build a single collision TileMapLayer for specific IntGrid values on one physics layer
   private func buildSingleCollisionLayer(
-    from layer: LDLayerInstance,
+    from layer: LDLayer,
     layerDef _: LDLayerDef,
     forValues values: [Int],
     physicsLayer: Int
@@ -428,7 +428,7 @@ public class LDTileMapBuilder {
   ///   - valueToLayerDef: Dictionary mapping IntGrid values to layer definition indices
   /// - Returns: TileMapLayer with collision
   private func buildCollisionLayerWithValues(
-    from layer: LDLayerInstance,
+    from layer: LDLayer,
     valueToLayerDef: [Int: Int] = [:]
   ) -> TileMapLayer? {
     guard layer.type == .intGrid else {

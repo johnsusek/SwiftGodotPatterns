@@ -220,7 +220,7 @@ public extension LDFieldValue {
 // MARK: - Field Instance
 
 /// An instance of a field with its value
-public struct LDFieldInstance: Codable {
+public struct LDField: Codable {
   /// Field identifier
   public let identifier: String
 
@@ -306,7 +306,7 @@ extension Color {
 
 // MARK: - Field Collection Extension
 
-public extension Array where Element == LDFieldInstance {
+public extension Array where Element == LDField {
   /// Get a field value by identifier
   func field(_ identifier: String) -> LDFieldValue? {
     first(where: { $0.identifier == identifier })?.value

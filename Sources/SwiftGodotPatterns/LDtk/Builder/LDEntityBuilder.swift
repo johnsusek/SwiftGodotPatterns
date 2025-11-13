@@ -9,7 +9,7 @@ public struct LDEntityBuildConfig {
   public var registry: LDEntityMapperRegistry = .shared
 
   /// Whether to create default marker nodes for unmapped entities
-  public var createMarkersForUnmapped: Bool = true
+  public var createMarkersForUnmapped: Bool = false
 
   /// Z-index offset for entity nodes (defaults to 11 so entities render above tile layers)
   public var zIndexOffset: Int32 = 11
@@ -45,7 +45,7 @@ public class LDEntityBuilder {
   ///   - zIndex: Z-index for the entity layer
   /// - Returns: Node2D container with all spawned entities
   public func buildEntityLayer(
-    from layer: LDLayerInstance,
+    from layer: LDLayer,
     level: LDLevel,
     config: LDEntityBuildConfig = LDEntityBuildConfig(),
     zIndex: Int32 = 0

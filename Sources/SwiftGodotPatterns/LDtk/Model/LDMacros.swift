@@ -3,7 +3,7 @@ import Foundation
 /// Protocol for LDtk enums with automatic code generation.
 ///
 /// Enums conforming to this protocol get:
-/// - Build-time generation to `ldtkEnums.json`
+/// - Build-time generation to `LDExported.json`
 /// - Type-safe field accessors
 ///
 /// ### Usage:
@@ -16,7 +16,7 @@ import Foundation
 /// }
 /// ```
 ///
-/// The build tool automatically generates `ldtkEnums.json`:
+/// The build tool automatically generates `LDExported.json`:
 /// ```json
 /// {
 ///   "Item": ["Knife", "Boots"]

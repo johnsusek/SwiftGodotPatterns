@@ -3,450 +3,420 @@
 
 ### SwiftGodotPatterns
 
-Game-agnostic utilities for [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot).
+Declarative game development.
+
+A SwiftUI-style library for building games with [SwiftGodot](https://github.com/migueldeicaza/SwiftGodot), [LDtk](https://ldtk.io), and [Aseprite](https://aseprite.org).
+
+<br>
 
 📕 [API Documentation](https://swiftpackageindex.com/johnsusek/SwiftGodotPatterns/documentation/swiftgodotpatterns)
 
 <br><br><br><br>
 
-## Builder
-
-### 🏗️ Core Concepts
-
-SwiftGodotPatterns provides a SwiftUI-inspired declarative builder pattern for creating Godot node hierarchies.
-
-**Basic GNode Creation:**
+## Quick Start
 
 ```swift
-// Create a node with default initializer
-let sprite = GNode<Sprite2D> {
-  // Children go here
+import SwiftGodot
+import SwiftGodotPatterns
+
+@Godot
+final class Game: Node2D {
+  override func _ready() {
+    addChild(node: GameView().toNode())
+  }
 }
 
-// With custom initializer
-let hud = GNode<CustomHUD>("HUD", make: { CustomHUD(config: myConfig) }) {
-  HealthBar()
-  ScoreLabel()
+struct GameView: GView {
+  var body: some GView {
+    Node2D$ {
+      Label$().text("Hello World")
+    }
+  }
 }
 ```
 
-**$ Syntax Shorthand:**
+## Builder Syntax
 
 ```swift
-// Instead of GNode<Sprite2D>(), use Sprite2D$()
+// $ syntax - shorthand for GNode<T>
 Sprite2D$()
-  .texture(myTexture)
-  .position(Vector2(x: 100, y: 100))
+CharacterBody2D$()
+Label$()
 
-// Works for all Godot node types
-VBoxContainer$ {
-  Label$().text("Hello")
-  Button$().text("Click me")
+// With children
+Node2D$ {
+  Sprite2D$()
+  CollisionShape2D$()
+}
+
+// Named nodes
+CharacterBody2D$("Player") {
+  Sprite2D$()
+}
+
+// Custom initializer
+GNode<CustomNode>("Name", make: { CustomNode(config: config) }) {
+  // children
 }
 ```
 
-**Dynamic Member Lookup:**
+## Properties & Configuration
 
 ```swift
-// Set any property using keypaths
-Node2D$()
-  .position(Vector2(x: 100, y: 200))
-  .scale(Vector2(x: 2, y: 2))
+// Dynamic member lookup - set any property
+Sprite2D$()
+  .position(Vector2(100, 200))
+  .scale(Vector2(2, 2))
   .rotation(45)
+  .modulate(.red)
+  .zIndex(10)
 
-// StringName properties accept strings
-Label$().name("MyLabel")  // Converted to StringName automatically
-```
-
-**Configure Closure:**
-
-```swift
-// For complex configuration
-ColorRect$().configure { rect in
-  // do anything with rect here
+// Configure closure for complex setup
+Sprite2D$().configure { sprite in
+  sprite.texture = myTexture
+  sprite.centered = true
 }
 ```
 
-**Capture node references:**
+## Resource Loading
 
 ```swift
-@State var playerNode: CharacterBody2D?
-CharacterBody2D$().ref($playerNode) // replaces: .onReady { node in playerNode = node }
+// Load into property
+Sprite2D$()
+  .res(\.texture, "player.png")
+  .res(\.material, "shader_material.tres")
+
+// Custom resource loading
+Sprite2D$()
+  .withResource("shader.gdshader", as: Shader.self) { node, shader in
+    let material = ShaderMaterial()
+    material.shader = shader
+    node.material = material
+  }
 ```
-## Node Modifiers
 
-Custom modifiers available on `GNode` instances.
-
-### 🗂️ Resource Loading
-
-Load Godot resources using declarative syntax.
+## State Management
 
 ```swift
-// Load resource into property
-.res(\.texture, "player.png")
+struct PlayerView: GView {
+  @State var health: Int = 100
+  @State var position: Vector2 = .zero
+  @State var playerNode: CharacterBody2D?
 
-// Load with custom apply logic
-.withResource("shader.gdshader", as: Shader.self) { node, shader in
-  node.material = ShaderMaterial()
-  (node.material as? ShaderMaterial)?.shader = shader
+  var body: some GView {
+    CharacterBody2D$ {
+      Sprite2D$()
+      ProgressBar$()
+        .bind(\.value, to: $health)  // One-way binding
+    }
+    .position($position)  // Bind to property
+    .ref($playerNode)     // Capture node reference
+    .onProcess { node, delta in
+      health -= 1  // Modify state
+    }
+  }
 }
 ```
 
-### 👥 Groups & Scene Instancing
-
-Manage node groups and instantiate packed scenes.
+## State Binding Patterns
 
 ```swift
-// Add to single group
-.group("enemies")
-.group("enemies", persistent: true)
+// One-way binding
+Label$().bind(\.text, to: $score) { "Score: \($0)" }
 
-// Add to multiple groups
-.groups(["enemies", "damageable"])
+// Bind to sub-property
+Sprite2D$().bind(\.x, to: $position, \.x)
 
-// Instance a packed scene as child
-.fromScene("scenes/enemy.tscn") { child in
-    // Optional: configure the instanced node
+// Multi-state binding
+Label$().bind(\.text, to: $health, $maxHealth) { "\($0)/\($1)" }
+
+// Watch state changes
+Node2D$().watch($health) { node, health in
+  node.modulate = health < 20 ? .red : .white
 }
+
+// Two-way bindings (form controls)
+LineEdit$().text($username)
+Slider$().value($volume)
+CheckBox$().pressed($isEnabled)
+OptionButton$().selected($selectedIndex)
 ```
 
-### 📡 Signal Connections
-
-Connect to Godot signals with type-safe closures.
+## Signal Connections
 
 ```swift
 // No arguments
-.onSignal(\.pressed) { node in
-  print("\(node) was pressed")
-}
+Button$()
+  .onSignal(\.pressed) { node in
+    print("Pressed!")
+  }
 
-// One argument
-.onSignal(\.areaEntered) { node, area in
-  print("Area entered: \(area)")
-}
+// With arguments
+Area2D$()
+  .onSignal(\.bodyEntered) { node, body in
+    print("Body entered: \(body)")
+  }
 
-// Multiple arguments (up to 7 supported)
-.onSignal(\.bodyShapeEntered) { node, bodyRid, body, bodyShapeIndex, localShapeIndex in
-  // Handle collision
-}
+// Multiple arguments
+Area2D$()
+  .onSignal(\.bodyShapeEntered) { node, bodyRid, body, bodyShapeIndex, localShapeIndex in
+    // Handle collision
+  }
 ```
 
-### 🎯 Event Bus
-
-Subscribe to events from the EventBus system.
+## Process Hooks
 
 ```swift
-// Subscribe to all events of type
-.onEvent(GameEvent.self) { node, event in
-  // Handle event
-}
-
-// Subscribe with filter
-.onEvent(GameEvent.self, match: { $0.isImportant }) { node, event in
-  // Handle only important events
-}
+Node2D$()
+  .onReady { node in
+    print("Node ready!")
+  }
+  .onProcess { node, delta in
+    node.position.x += 100 * Float(delta)
+  }
+  .onPhysicsProcess { node, delta in
+    // Physics updates
+  }
 ```
 
-### 📐 Control Layout
-
-Layout helpers for `Control` nodes (non-container and container contexts).
-
-**Anchor/Offset System** (for non-container parents):
+## Dynamic Views
 
 ```swift
-// Apply layout presets
-.offsets(.topRight)
-.anchors(.center)
-.anchorsAndOffsets(.fullRect, margin: 10)
+// ForEach - dynamic lists
+struct InventoryView: GView {
+  @State var items: [Item] = []
 
-// Manual anchor/offset control
-.anchor(top: 0, right: 1, bottom: 1, left: 0)
-.offset(top: 12, right: -12, bottom: -12, left: 12)
-```
-
-**Container Size Flags** (for container parents like VBoxContainer):
-
-```swift
-// Set horizontal size flags
-.sizeH(.expandFill)
-
-// Set vertical size flags
-.sizeV(.shrinkCenter)
-
-// Set both
-.size(.expandFill, .shrinkCenter)
-
-// Set same for both axes
-.size(.expandFill)
-```
-
-### ⚡ Process Hooks
-
-Register callbacks for node lifecycle events.
-
-```swift
-// Called when node enters tree
-.onReady { node in
-  print("Node is ready!")
-}
-
-// Called every frame
-.onProcess { node, delta in
-  node.position.x += 100 * delta
-}
-
-// Called every physics frame
-.onPhysicsProcess { node, delta in
-  // Physics updates
-}
-```
-
-## 📦 State Management
-
-**@State Property Wrapper:**
-
-```swift
-@State var position: Vector2 = .zero
-
-Node2D$().position($position)
-```
-
-### 🔄 State Binding
-
-Bind `GState` to node properties for reactive updates.
-
-**One-way Bindings:**
-
-```swift
-// Dynamic member syntax
-.position($playerPosition)
-
-// Binding by keypath
-.bind(\.position, to: $playerPosition)
-
-// Binding with transformation
-.bind(\.text, to: $score) { "Score: \($0)" }
-
-// Multi-State Bindings
-.bind(\.text, to: $first, $second) { "\($0) - \($1)" }
-
-// Binding to sub-property
-.bind(\.x, to: $position, \.x)
-
-// Custom update logic
-.watch($health) { node, health in
-    node.modulate = health < 20 ? .red : .white
-}
-```
-
-### ↔️ Two-Way Bindings
-
-Form controls with automatic two-way state synchronization.
-
-```swift
-// Text input
-LineEdit$().text($username)
-TextEdit$().text($notes)
-CodeEdit$().text($code)
-
-// Range controls
-Slider$().value($volume)
-ScrollBar$().value($scrollPos)
-SpinBox$().value($count)
-
-// Buttons
-CheckBox$().pressed($isEnabled)
-
-// Selection controls
-OptionButton$().selected($optionIndex)
-ItemList$().selected($selectedItem)
-TabBar$().currentTab($activeTab)
-TabContainer$().currentTab($activeTab)
-
-// Color pickers
-ColorPicker$().color($selectedColor)
-ColorPickerButton$().color($backgroundColor)
-```
-
-
-### 🔄 Dynamic Views
-
-**ForEach - Dynamic Lists:**
-
-```swift
-@State var items: [Item] = []
-
-VBoxContainer$ {
-  ForEach($items, id: \.id) { item in
-    HBoxContainer$ {
-      Label$().text(item.wrappedValue.name)
-      Button$().text("Delete").onSignal(\.pressed) { _ in
-        items.removeAll { $0.id == item.wrappedValue.id }
+  var body: some GView {
+    VBoxContainer$ {
+      ForEach($items) { item in
+        HBoxContainer$ {
+          Label$().text(item.wrappedValue.name)
+          Button$().text("X").onSignal(\.pressed) { _ in
+            items.removeAll { $0.id == item.wrappedValue.id }
+          }
+        }
       }
     }
   }
 }
 
-// For Identifiable types, no need to specify id
-ForEach($items) { item in
-  ItemRow(item: item)
-}
+// If - conditional rendering
+struct MenuView: GView {
+  @State var showSettings = false
 
-// Modes: .standard (default) or .deferred (batches updates to next frame)
-ForEach($items, mode: .deferred) { item in
-  // ...
-}
-```
-
-**If - Conditional Rendering:**
-
-```swift
-@State var showDetails = false
-
-VBoxContainer$ {
-  Button$()
-    .text("Toggle")
-    .onSignal(\.pressed) { _ in showDetails.toggle() }
-
-  If($showDetails) {
-    Label$().text("Details are visible!")
-  }
-  .Else {
-    Label$().text("Details are hidden")
+  var body: some GView {
+    VBoxContainer$ {
+      If($showSettings) {
+        SettingsPanel()
+      }
+      .Else {
+        MainMenu()
+      }
+    }
   }
 }
+
+// If modes
+If($condition) { /* ... */ }                 // .hide (default) - toggle visible
+If($condition) { /* ... */ }.mode(.remove)   // addChild/removeChild
+If($condition) { /* ... */ }.mode(.destroy)  // queueFree/rebuild
+
+// Switch/Case - multi-way branching
+enum Page { case mainMenu, levelSelect, settings }
+
+struct GameView: GView {
+  @State var currentPage: Page = .mainMenu
+
+  var body: some GView {
+    VBoxContainer$ {
+      Switch($currentPage) {
+        Case(.mainMenu) {
+          Label$().text("Main Menu")
+          Button$().text("Start").onSignal(\.pressed) { _ in
+            currentPage = .levelSelect
+          }
+        }
+        Case(.levelSelect) {
+          Label$().text("Level Select")
+          Button$().text("Back").onSignal(\.pressed) { _ in
+            currentPage = .mainMenu
+          }
+        }
+        Case(.settings) {
+          Label$().text("Settings")
+        }
+      }
+      .default {
+        Label$().text("Unknown page")
+      }
+    }
+  }
+}
+
+// Computed state - derive new reactive states
+@State var score = 0
+let scoreText = $score.computed { "Score: \($0)" }
+let isHighScore = $score.computed { $0 > 1000 }
+
+Label$().bind(\.text, to: scoreText)
+
+If(isHighScore) {
+  Label$().text("New High Score!").modulate(.yellow)
+}
+
+// Combine multiple states
+@State var currentPage = 1
+@State var totalPages = 10
+let pageText = $currentPage.computed(with: $totalPages) { current, total in
+  "Page \(current) of \(total)"
+}
+
+@State var health = 80
+@State var maxHealth = 100
+@State var playerName = "Hero"
+let statusText = $health.computed(with: $maxHealth, $playerName) { hp, maxHp, name in
+  "\(name): \(hp)/\(maxHp) HP"
+}
+
+Label$().bind(\.text, to: statusText)
 ```
 
-**Modes:**
+## Groups & Scene Instancing
 
 ```swift
-If($condition) { /* ... */ }                // .hide (default) - Toggles visible property (fast)
-If($condition) { /* ... */ }.mode(.remove)  // .remove - Uses addChild/removeChild (slow, cleaner tree)
-If($condition) { /* ... */ }.mode(.destroy) // .destroy - Uses queueFree/rebuild (slowest, frees memory)
+Node2D$()
+  .group("enemies")
+  .group("damageable", persistent: true)
+  .groups(["enemies", "damageable"])
+
+Node2D$()
+  .fromScene("enemy.tscn") { child in
+    // Configure instanced scene
+  }
 ```
 
-### 🎨 Theme Building
-
-Create themes declaratively from dictionaries with automatic camelCase to snake_case conversion.
+## Control Layout
 
 ```swift
-let myTheme = Theme([
-  "Button": [
-    "colors": ["fontColor": Color.white],
-    "constants": ["outlineSize": 2],
-    "fontSizes": ["fontSize": 16]
-  ],
-  "Label": [
-    "colors": ["fontColor": Color.white],
-    "fontSizes": ["fontSize": 14]
-  ]
-])
+// Anchor/offset presets (non-container parents)
+Control$()
+  .anchors(.center)
+  .offsets(.topRight)
+  .anchorsAndOffsets(.fullRect, margin: 10)
+  .anchor(top: 0, right: 1, bottom: 1, left: 0)
+  .offset(top: 12, right: -12, bottom: -12, left: 12)
 
-// Apply theme to node
-Control$().theme(myTheme)
+// Container size flags (for VBox/HBox parents)
+Button$()
+  .sizeH(.expandFill)
+  .sizeV(.shrinkCenter)
+  .size(.expandFill, .shrinkCenter)
+  .size(.expandFill)  // Both axes
 ```
 
-## 📢 EventBus
-
-Thread-safe publish/subscribe event bus for in-process messaging.
+## Collision (2D)
 
 ```swift
-// Define event types
+CharacterBody2D$()
+  .collisionLayer(.alpha)
+  .collisionMask([.beta, .gamma])
+
+// Available layers: .alpha, .beta, .gamma, .delta, .epsilon, .zeta, .eta, .theta,
+// .iota, .kappa, .lambda, .mu, .nu, .xi, .omicron, .pi, .rho, .sigma, .tau,
+// .upsilon, .phi, .chi, .psi, .omega
+
+// Custom layers
+CharacterBody2D$()
+  .collisionMask(wallLayer | enemyLayer)
+```
+
+## Shape Helpers
+
+```swift
+CollisionShape2D$().shape(RectangleShape2D(w: 50, h: 100))
+CollisionShape2D$().shape(CircleShape2D(radius: 25))
+CollisionShape2D$().shape(CapsuleShape2D(radius: 10, height: 50))
+CollisionShape2D$().shape(SegmentShape2D(a: [0, 0], b: [100, 100]))
+CollisionShape2D$().shape(SeparationRayShape2D(length: 100))
+CollisionShape2D$().shape(WorldBoundaryShape2D(normal: [0, -1], distance: 0))
+```
+
+## EventBus
+
+```swift
 enum GameEvent {
   case playerDied
   case scoreChanged(Int)
-  case levelComplete
+  case itemCollected(String)
 }
 
-// Create or resolve a bus
-let bus = ServiceLocator.resolve(GameEvent.self)
-
-// Subscribe to events
-let token = bus.onEach { event in
-  switch event {
-  case .playerDied:
-    print("Game Over")
-  case .scoreChanged(let score):
-    print("Score: \(score)")
-  case .levelComplete:
-    print("Level Complete!")
+// Subscribe via modifier
+Node2D$()
+  .onEvent(GameEvent.self) { node, event in
+    switch event {
+    case .playerDied: print("Game Over")
+    case .scoreChanged(let score): print("Score: \(score)")
+    case .itemCollected(let item): print("Got: \(item)")
+    }
   }
-}
 
-// Publish events
+// Subscribe with filter
+Node2D$()
+  .onEvent(GameEvent.self, match: { event in
+    if case .scoreChanged = event { return true }
+    return false
+  }) { node, event in
+    // Handle only score changes
+  }
+
+// Publish via ServiceLocator
+let bus = ServiceLocator.resolve(GameEvent.self)
 bus.publish(.scoreChanged(100))
 
-// Cancel subscription
-bus.cancel(token)
-
-// Debug logging
-bus.tapLog(level: .debug, name: "GameEvents")
+// Or use EmittableEvent protocol
+enum GameEvent: EmittableEvent {
+  case playerDied
+}
+GameEvent.playerDied.emit()
 ```
 
-**ServiceLocator** provides global singleton buses per event type:
+## Store (Uni-directional State)
 
 ```swift
-// Different event types get different buses
-let gameBus = ServiceLocator.resolve(GameEvent.self)
-let uiBus = ServiceLocator.resolve(UIEvent.self)
-```
-
-## 🗄️ Store
-
-A uni-directional data store for managing application state with events and reducers.
-
-**Basic Setup:**
-
-```swift
-// Define your state
 struct GameState {
-  var playerHealth: Int = 100
+  var health: Int = 100
   var score: Int = 0
-  var level: Int = 1
 }
 
-// Define events that can change state
 enum GameEvent {
-  case tookDamage(Int)
-  case scoreAdded(Int)
+  case takeDamage(Int)
+  case addScore(Int)
 }
 
-// Create a pure reducer function
 func gameReducer(state: inout GameState, event: GameEvent) {
   switch event {
-  case .tookDamage(let amount):
-    state.playerHealth = max(0, state.playerHealth - amount)
-  case .scoreAdded(let points):
+  case .takeDamage(let amount):
+    state.health = max(0, state.health - amount)
+  case .addScore(let points):
     state.score += points
   }
 }
 
-// Create the store
-let store = Store(
-  initialState: GameState(),
-  reducer: gameReducer
-)
+let store = Store(initialState: GameState(), reducer: gameReducer)
 
-// Send events to update state
-store.commit(.tookDamage(20))
-store.commit(.scoreAdded(100))
-
-// Read current state
-print(store.state.playerHealth) // 80
-print(store.state.score)        // 100
-
-// Binding to views
-ProgressBar$().value(store.bind(\.playerHealth))
+// Use in views
+ProgressBar$().value(store.bind(\.health))
 Label$().text(store.bind(\.score)) { "Score: \($0)" }
+
+// Send events
+store.commit(.takeDamage(10))
+store.commit(.addScore(100))
 ```
 
 ## Input Actions
 
-Declarative input mapping with type-safe DSL.
-
-### 🎮 Basic Actions
-
 ```swift
+// Define actions
 Actions {
   Action("jump") {
     Key(.space)
@@ -458,18 +428,7 @@ Actions {
     Key(.leftCtrl)
   }
 
-  Action("pause") {
-    Key(.escape)
-  }
-}
-.install()
-```
-
-### 🕹️ Analog Axes
-
-```swift
-Actions {
-  // Vertical axis (up/down)
+  // Analog axes
   ActionRecipes.axisUD(
     namePrefix: "move",
     device: 0,
@@ -479,7 +438,6 @@ Actions {
     keyUp: .w
   )
 
-  // Horizontal axis (left/right)
   ActionRecipes.axisLR(
     namePrefix: "move",
     device: 0,
@@ -489,15 +447,9 @@ Actions {
     keyRight: .d
   )
 }
-.install()
+.install(clearExisting: true)
 
-// Creates actions: move_up, move_down, move_left, move_right
-```
-
-### 🎯 Runtime Polling
-
-```swift
-// Query action state
+// Runtime polling
 if Action("jump").isJustPressed {
   player.jump()
 }
@@ -506,7 +458,6 @@ if Action("shoot").isPressed {
   player.shoot(Action("shoot").strength)
 }
 
-// Axis helpers
 let horizontal = RuntimeAction.axis(negative: "move_left", positive: "move_right")
 let movement = RuntimeAction.vector(
   negativeX: "move_left",
@@ -518,200 +469,95 @@ let movement = RuntimeAction.vector(
 
 ## Property Wrappers
 
-Call `bindProps()` in `_ready()` to activate.
-
-### 👶 @Child - Single Child Reference
+Call `bindProps()` in `_ready()` to activate all property wrappers.
 
 ```swift
-final class Player: Node {
+@Godot
+final class Player: CharacterBody2D {
   @Child("Sprite") var sprite: Sprite2D?
   @Child("Health", deep: true) var healthBar: ProgressBar?
-
-  override func _ready() {
-    bindProps()
-    sprite?.visible = true
-  }
-}
-```
-
-### 👨‍👩‍👧‍👦 @Children - Multiple Children
-
-```swift
-final class Menu: Node {
   @Children var buttons: [Button]
-  @Children("Items", deep: true) var items: [Node2D]
+  @Ancestor var level: Level?
+  @Sibling("AudioPlayer") var audio: AudioStreamPlayer?
+  @Autoload("GameManager") var gameManager: GameManager?
+  @Group("enemies") var enemies: [Enemy]
+  @Service var events: EventBus<GameEvent>?
+  @Prefs("musicVolume", default: 0.5) var volume: Double
 
-  override func _ready() {
-    bindProps()
-    buttons.forEach { $0.disabled = false }
-  }
-}
-```
-
-### 👴 @Ancestor - Find Parent by Type
-
-```swift
-final class HealthBar: Node {
-  @Ancestor var player: Player?
-
-  override func _ready() {
-    bindProps()
-    player?.health.onChange { [weak self] hp in
-      self?.updateBar(hp)
-    }
-  }
-}
-```
-
-### 👫 @Sibling - Reference Sibling Node
-
-```swift
-final class PlayerController: Node {
-  @Sibling("Sprite") var sprite: Sprite2D?
-  @Sibling var firstNode: Node?  // First sibling of any type
-
-  override func _ready() {
-    bindProps()
-  }
-}
-```
-
-### 🌍 @Autoload - Reference Autoload Singleton
-
-```swift
-final class GameUI: CanvasLayer {
-  @Autoload("GameState") var gameState: GameState?
-  @Autoload("AudioManager") var audio: AudioManager?
-
-  override func _ready() {
-    bindProps()
-    print("Level: \(gameState?.level ?? 0)")
-  }
-}
-```
-
-### 👥 @Group - Query by Group
-
-```swift
-final class EnemyManager: Node {
-  @Group("enemies") var enemies: [CharacterBody2D]
-  @Group(["interactive", "collectible"]) var items: [Node]
-
-  override func _ready() {
-    bindProps()
-
-    // Use immediately
-    print("Enemy count: \(enemies.count)")
-
-    // Refresh later
-    let current = $enemies()  // Re-queries and returns fresh list
-  }
-}
-```
-
-### 🔌 @Service - Inject EventBus
-
-```swift
-enum PlayerEvent {
-  case died
-  case healed(Int)
-}
-
-final class PlayerHealth: Node {
-  @Service var events: EventBus<PlayerEvent>?
-
-  override func _ready() {
-    bindProps()
-    events?.publish(.healed(50))
-  }
-}
-```
-
-### 💾 @Prefs - Persistent Preferences
-
-```swift
-final class Settings: Node {
-  @Prefs("musicVolume", default: 0.5) var musicVolume: Double
-  @Prefs("showHints", default: true) var showHints: Bool
-
-  override func _ready() {
-    bindProps()
-
-    // Auto-loads from user://prefs.json
-    print("Volume: \(musicVolume)")
-
-    // Auto-saves on change
-    musicVolume = 0.8
-  }
-}
-```
-
-### 📡 @OnSignal - Declarative Signal Binding
-
-Automatically connect Godot signals to Swift methods using a macro. Call `bindProps()` in `_ready()` to activate.
-
-```swift
-final class MainMenu: Node {
   @OnSignal("StartButton", \Button.pressed)
   func onStartPressed(_ sender: Button) {
-    print("Game starting!")
-  }
-
-  @OnSignal("Player/Area2D", \Area2D.bodyEntered)
-  func onPlayerAreaEntered(_ sender: Area2D, _ body: Node) {
-    print("Body entered: \(body.name)")
-  }
-
-  @OnSignal("QuitButton", \Button.pressed, flags: .oneShot)
-  func onQuitPressed(_ sender: Button) {
-    // Automatically disconnects after first call
-    getTree()?.quit()
+    print("Started!")
   }
 
   override func _ready() {
     bindProps()
+
+    sprite?.visible = true
+    enemies.forEach { print($0) }
+
+    // Refresh group query
+    let currentEnemies = $enemies()
   }
 }
 ```
 
-## Utilities
-
-### 📝 MsgLog
-
-Simple leveled logging singleton.
+## Theme Building
 
 ```swift
-// Basic logging
-MsgLog.shared.debug("Player spawned")
-MsgLog.shared.info("Game started")
-MsgLog.shared.warn("Low health")
-MsgLog.shared.error("Failed to load")
+let theme = Theme([
+  "Button": [
+    "colors": ["fontColor": Color.white],
+    "constants": ["outlineSize": 2],
+    "fontSizes": ["fontSize": 16]
+  ],
+  "Label": [
+    "colors": ["fontColor": Color.white],
+    "fontSizes": ["fontSize": 14]
+  ]
+])
 
-// Configure minimum level
-MsgLog.shared.minLevel = .warn  // Only warn and error
-
-// Custom sink
-MsgLog.shared.sink = { level, message in
-  myCustomLogger.log(level, message)
-}
-
-// Access history
-for (level, message) in MsgLog.shared.lines {
-  print("[\(level)] \(message)")
-}
+Control$().theme(theme)
 ```
 
-### 🔧 SwiftGodot Extensions
-
-**Engine:**
+## Vector2 Extensions
 
 ```swift
-// Get SceneTree
+let pos = Vector2(100, 200)
+let pos: Vector2 = [100, 200]  // Array literal
+let doubled = pos * 2
+let scaled = pos * 1.5
+```
+
+## Node Extensions
+
+```swift
+// Typed queries
+let sprites: [Sprite2D] = node.getChildren()
+let firstSprite: Sprite2D? = node.getChild()
+let enemySprite: Sprite2D? = node.getNode("Enemy")
+
+// Group queries
+let enemies: [Enemy] = node.getNodes(inGroup: "enemies")
+
+// Parent chain
+let parents: [Node2D] = node.getParents()
+
+// Metadata queries (recursive)
+let spawns: [Node2D] = root.queryMeta(key: "type", value: "spawn")
+let valuable: [Node2D] = root.queryMeta(key: "value", value: 100)
+let markers: [Node2D] = root.queryMetaKey("marker")
+
+// Get typed metadata
+let coinValue: Int? = node.getMetaValue("coin_value")
+```
+
+## Engine Extensions
+
+```swift
 if let tree = Engine.getSceneTree() {
   // ...
 }
 
-// Schedule next frame callback aka deferred
 Engine.onNextFrame {
   print("Next frame!")
 }
@@ -721,88 +567,35 @@ Engine.onNextPhysicsFrame {
 }
 ```
 
-**Node:**
+## LDtk Integration
+
+Complete workflow for loading LDtk levels.
 
 ```swift
-// Typed node queries
-let sprites: [Sprite2D] = node.getChildren()
-// replaces: node.getChildren().compactMap { $0 as? Sprite2D }
-
-let firstSprite: Sprite2D? = node.getChild()
-// replaces: node.getChildren().first(where: { $0 is Sprite2D }) as? Sprite2D
-
-let enemySprite: Sprite2D? = node.getNode("Enemy")
-// replaces: node.getNode(path: NodePath("Enemy")) as? Sprite2D
-
-// Group queries
-let enemies: [Enemy] = node.getNodes(inGroup: "enemies")
-// replaces: node.getTree()?.getNodesInGroup("enemies").compactMap { $0 as? Enemy } ?? []
-
-// Parent chain
-let parents: [Node2D] = node.getParents()
-
-// Metadata queries (recursive search)
-let coinSpawns: [Node2D] = root.queryMeta(key: "type", value: "coin_spawn")
-let valuable: [Node2D] = root.queryMeta(key: "value", value: 100)
-let spawners: [Node2D] = root.queryMetaKey("spawn_point")  // any value
-
-// Get metadata safely
-let coinValue: Int? = node.getMetaValue("coin_value")
-```
-
-**Vector2:**
-
-```swift
-// Convenience init
-let pos = Vector2(100, 200)
-
-// Array literal init
-let pos: Vector2 = [100, 200]
-
-// Scalar multiplication (Float, Double, Int)
-let doubled = pos * 2
-let scaled = pos * 1.5
-```
-
-**Shapes Inits:**
-
-Configure shapes directly from inits, helpful for passing to properties in views.
-
-```swift
-RectangleShape2D(w: 50, h: 100)
-CircleShape2D(radius: 25)
-CapsuleShape2D(radius: 10, height: 50)
-SegmentShape2D(a: [0, 0], b: [100, 100])
-SeparationRayShape2D(length: 100)
-WorldBoundaryShape2D(normal: [0, -1], distance: 0)
-ConvexPolygonShape2D(points: myPoints)
-ConcavePolygonShape2D(segments: mySegments)
-```
-
-## Components
-
-### 🗺️ LDLevelView
-
-Declaratively loads [LDtk](https://ldtk.io) levels - builds tile layers, collision shapes from IntGrid, and spawns entities.
-
-LDExported enums let you work with typed data from LDtk. JSON is generated each build that syncs with the LDtk editor.
-
-```swift
+// Define type-safe enums (auto-generates LDExported.json on build)
 enum Item: String, LDExported {
   case knife = "Knife"
   case boots = "Boots"
+  case potion = "Potion"
+}
+
+enum EnemyType: String, LDExported {
+  case goblin = "Goblin"
+  case skeleton = "Skeleton"
 }
 
 struct GameView: GView {
   let project: LDProject
-
   @State var inventory: [Item] = []
+  @State var health: Int = 100
 
   var body: some GView {
     Node2D$ {
       LDLevelView(project, level: "Level_0")
         .onSpawn("Player") { entity, level, project in
           let wallLayer = project.collisionLayer(for: "walls", in: level)
+          let startItems: [Item] = entity.field("starting_items")?.asEnumArray() ?? []
+          inventory.append(contentsOf: startItems)
 
           CharacterBody2D$ {
             Sprite2D$()
@@ -814,62 +607,118 @@ struct GameView: GView {
           .position(entity.position)
           .collisionMask(wallLayer)
         }
-        .onSpawn("Chest") { entity, _, _ in
-          let loot: [Item] = entity.field("loot")?.asEnumArray() ?? []
+
+        .onSpawn("Enemy") { entity, level, project in
+          let enemyType: EnemyType? = entity.field("type")?.asEnum()
+          let patrolPath: [Vector2] = entity.field("patrol")?.asVector2Array() ?? []
+          let enemyHealth: Int = entity.field("health")?.asInt() ?? 10
 
           Area2D$ {
-            Sprite2D$().res(\.texture, "chest.png")
+            Sprite2D$()
+              .res(\.texture, "enemy_\(enemyType?.rawValue ?? "default").png")
+              .anchor([12, 16], within: entity.size)
+            CollisionShape2D$()
+              .shape(RectangleShape2D(w: 12, h: 16))
+          }
+          .position(entity.position)
+        }
+
+        .onSpawn("Chest") { entity, level, project in
+          let loot: [Item] = entity.field("loot")?.asEnumArray() ?? []
+          let locked: Bool = entity.field("locked")?.asBool() ?? false
+
+          Area2D$ {
+            Sprite2D$().res(\.texture, locked ? "chest_locked.png" : "chest.png")
           }
           .position(entity.position)
           .onSignal(\.bodyEntered) { _, body in
             inventory.append(contentsOf: loot)
           }
         }
-        .onSpawned { node, entity in
-          // Post-process - add debugging labels to all entities
-          node.addChild(node: Label$().text(entity.identifier).toNode())
+
+        .onSpawn("Door") { entity, level, project in
+          let destination: String? = entity.field("destination")?.asString()
+          let keyRequired: Item? = entity.field("key_required")?.asEnum()
+
+          Area2D$()
+            .position(entity.position)
         }
+
+        .onSpawned { node, entity in
+          // Post-process all entities
+          if let debugMode = entity.field("debug")?.asBool(), debugMode {
+            node.addChild(node: Label$().text(entity.identifier).toNode())
+          }
+        }
+        .zIndexOffset(100)
+        .createEntityMarkers()
+
+      // HUD
+      CanvasLayer$ {
+        VBoxContainer$ {
+          Label$()
+            .bind(\.text, to: $health) { "Health: \($0)" }
+          Label$()
+            .bind(\.text, to: $inventory) { items in
+              "Items: \(items.map(\.rawValue).joined(separator: ", "))"
+            }
+        }
+        .offset(top: 10, left: 10)
+      }
     }
   }
 }
 
-let project = LDProject.load("res://game.ldtk")
-GameView(project: project)
+// Usage
+let project = LDProject.load("res://game.ldtk")!
+addChild(node: GameView(project: project).toNode())
 ```
 
-**Field Accessors:**
+### LDtk Field Accessors
 
-All LDtk types are supported.
+All LDtk field types are supported:
 
 ```swift
+// Single values
 entity.field("health")?.asInt() -> Int?
-entity.field("distance")?.asFloat() -> Double?
-entity.field("is_locked")?.asBool() -> Bool?
+entity.field("speed")?.asFloat() -> Double?
+entity.field("locked")?.asBool() -> Bool?
 entity.field("name")?.asString() -> String?
 entity.field("tint")?.asColor() -> Color?
 entity.field("destination")?.asPoint() -> LDPoint?
-entity.field("destination")?.asVector2(gridSize: 16) -> Vector2?
+entity.field("spawn_pos")?.asVector2(gridSize: 16) -> Vector2?
 entity.field("target")?.asEntityRef() -> LDEntityRef?
-entity.field("items")?.asEnum<MyItemEnum>() -> MyItemEnum?
+entity.field("item_type")?.asEnum<Item>() -> Item?
 
+// Arrays
 entity.field("scores")?.asIntArray() -> [Int]?
 entity.field("distances")?.asFloatArray() -> [Double]?
 entity.field("flags")?.asBoolArray() -> [Bool]?
-entity.field("names")?.asStringArray() -> [String]?
-entity.field("path")?.asPointArray() -> [LDPoint]?
-entity.field("path")?.asVector2Array(gridSize: 16) -> [Vector2]?
+entity.field("tags")?.asStringArray() -> [String]?
+entity.field("waypoints")?.asPointArray() -> [LDPoint]?
+entity.field("patrol")?.asVector2Array(gridSize: 16) -> [Vector2]?
 entity.field("palette")?.asColorArray() -> [Color]?
 entity.field("targets")?.asEntityRefArray() -> [LDEntityRef]?
-entity.field("loot")?.asEnumArray<MyItemEnum>() -> [MyItemEnum]?
+entity.field("loot")?.asEnumArray<Item>() -> [Item]?
+entity.field("values")?.asArray() -> [LDFieldValue]?  // Raw array
 ```
 
-### 🎨 AseSprite
-
-Loads and plays [Aseprite](https://www.aseprite.org) animations directly. Builds Godot SpriteFrames resources from Aseprite frame/timing data. Maps Aseprite tags to Godot animations.
+### LDtk Collision Helper
 
 ```swift
-// Basic usage
-let character = AseSprite(
+// Get physics layer bit for IntGrid group name
+let wallLayer = project.collisionLayer(for: "walls", in: level)
+let platformLayer = project.collisionLayer(for: "platforms", in: level)
+
+CharacterBody2D$()
+  .collisionMask(wallLayer | platformLayer)
+```
+
+## AseSprite
+
+```swift
+// Load Aseprite animations
+let sprite = AseSprite(
   "character.json",
   layer: "Body",
   options: .init(
@@ -879,9 +728,390 @@ let character = AseSprite(
   autoplay: "Idle"
 )
 
-// In builder pattern
+// Builder pattern
 AseSprite$(path: "player", layer: "Main")
   .configure { sprite in
     sprite.play(anim: "Walk")
   }
+```
+
+## Complete Game Example
+
+```swift
+import SwiftGodot
+import SwiftGodotPatterns
+
+@Godot
+final class Game: Node2D {
+  override func _ready() {
+    setupInput()
+    let project = LDProject.load("res://game.ldtk")!
+    addChild(node: GameView(project: project).toNode())
+  }
+
+  func setupInput() {
+    Actions {
+      Action("move_left") { Key(.a); Key(.left) }
+      Action("move_right") { Key(.d); Key(.right) }
+      Action("jump") { Key(.space); Key(.w) }
+      Action("shoot") { MouseButton(1) }
+    }.install()
+  }
+}
+
+enum Item: String, LDExported {
+  case coin = "Coin"
+  case key = "Key"
+  case potion = "Potion"
+}
+
+enum GameEvent: EmittableEvent {
+  case itemCollected(Item)
+  case enemyKilled
+  case playerDied
+}
+
+struct GameView: GView {
+  let project: LDProject
+  @State var inventory: [Item] = []
+  @State var health: Int = 100
+  @State var score: Int = 0
+
+  var body: some GView {
+    Node2D$ {
+      LDLevelView(project, level: "Main")
+        .onSpawn("Player") { entity, level, project in
+          PlayerView(
+            startPos: entity.position,
+            wallLayer: project.collisionLayer(for: "walls", in: level)
+          )
+        }
+        .onSpawn("Enemy") { entity, level, project in
+          EnemyView(
+            startPos: entity.position,
+            enemyType: entity.field("type")?.asEnum() ?? .goblin
+          )
+        }
+        .onSpawn("Collectible") { entity, level, project in
+          let item: Item? = entity.field("item")?.asEnum()
+
+          Area2D$ {
+            Sprite2D$().res(\.texture, "item_\(item?.rawValue ?? "unknown").png")
+          }
+          .position(entity.position)
+          .onSignal(\.bodyEntered) { node, _ in
+            if let item = item {
+              GameEvent.itemCollected(item).emit()
+              node.queueFree()
+            }
+          }
+        }
+
+      HUDView(inventory: $inventory, health: $health, score: $score)
+    }
+    .onEvent(GameEvent.self) { _, event in
+      switch event {
+      case .itemCollected(let item):
+        inventory.append(item)
+        score += 10
+      case .enemyKilled:
+        score += 100
+      case .playerDied:
+        health = 0
+      }
+    }
+  }
+}
+
+struct PlayerView: GView {
+  let startPos: Vector2
+  let wallLayer: UInt32
+  @State var position: Vector2
+  @State var velocity: Vector2 = .zero
+  @State var player: CharacterBody2D?
+
+  let gravity: Float = 980
+  let speed: Float = 200
+  let jumpSpeed: Float = 300
+
+  init(startPos: Vector2, wallLayer: UInt32) {
+    self.startPos = startPos
+    self.wallLayer = wallLayer
+    self._position = State(initialValue: startPos)
+  }
+
+  var body: some GView {
+    CharacterBody2D$ {
+      Sprite2D$().res(\.texture, "player.png")
+      CollisionShape2D$().shape(RectangleShape2D(w: 16, h: 22))
+    }
+    .position($position)
+    .velocity($velocity)
+    .collisionMask(wallLayer)
+    .ref($player)
+    .onProcess { _, delta in
+      updatePlayer(delta)
+    }
+  }
+
+  func updatePlayer(_ delta: Double) {
+    guard let player = player else { return }
+
+    var vel = velocity
+    vel.y += gravity * Float(delta)
+
+    var inputX: Float = 0
+    if Action("move_left").isPressed { inputX -= 1 }
+    if Action("move_right").isPressed { inputX += 1 }
+    vel.x = inputX * speed
+
+    if Action("jump").isJustPressed && player.isOnFloor() {
+      vel.y = -jumpSpeed
+    }
+
+    player.velocity = vel
+    player.moveAndSlide()
+
+    velocity = player.velocity
+    position = player.position
+  }
+}
+
+struct EnemyView: GView {
+  let startPos: Vector2
+  let enemyType: EnemyType
+  @State var position: Vector2
+  @State var health: Int = 10
+
+  init(startPos: Vector2, enemyType: EnemyType) {
+    self.startPos = startPos
+    self.enemyType = enemyType
+    self._position = State(initialValue: startPos)
+  }
+
+  var body: some GView {
+    Area2D$ {
+      Sprite2D$().res(\.texture, "enemy_\(enemyType.rawValue).png")
+      CollisionShape2D$().shape(CircleShape2D(radius: 8))
+    }
+    .position($position)
+    .onSignal(\.bodyEntered) { node, _ in
+      health -= 10
+      if health <= 0 {
+        GameEvent.enemyKilled.emit()
+        node.queueFree()
+      }
+    }
+  }
+}
+
+enum EnemyType: String, LDExported {
+  case goblin = "Goblin"
+  case skeleton = "Skeleton"
+}
+
+struct HUDView: GView {
+  let inventory: State<[Item]>
+  let health: State<Int>
+  let score: State<Int>
+
+  var body: some GView {
+    CanvasLayer$ {
+      VBoxContainer$ {
+        Label$()
+          .bind(\.text, to: health) { "Health: \(String(repeating: "♥", count: max(0, $0)))" }
+        Label$()
+          .bind(\.text, to: score) { "Score: \($0)" }
+        Label$()
+          .bind(\.text, to: inventory) { items in
+            "Inventory: \(items.map(\.rawValue).joined(separator: ", "))"
+          }
+      }
+      .offset(top: 10, left: 10)
+    }
+  }
+}
+```
+
+## Common Patterns
+
+### Character Controller
+
+```swift
+struct PlayerController: GView {
+  @State var position: Vector2 = .zero
+  @State var velocity: Vector2 = .zero
+  @State var player: CharacterBody2D?
+
+  let gravity: Float = 980
+  let speed: Float = 200
+  let jumpSpeed: Float = 300
+
+  var body: some GView {
+    CharacterBody2D$ {
+      Sprite2D$().res(\.texture, "player.png")
+      CollisionShape2D$().shape(RectangleShape2D(w: 16, h: 22))
+    }
+    .position($position)
+    .velocity($velocity)
+    .ref($player)
+    .onProcess { _, delta in
+      guard let player = player else { return }
+
+      var vel = velocity
+      vel.y += gravity * Float(delta)
+
+      let input = RuntimeAction.axis(negative: "move_left", positive: "move_right")
+      vel.x = input * speed
+
+      if Action("jump").isJustPressed && player.isOnFloor() {
+        vel.y = -jumpSpeed
+      }
+
+      player.velocity = vel
+      player.moveAndSlide()
+
+      velocity = player.velocity
+      position = player.position
+    }
+  }
+}
+```
+
+### Interactive Object
+
+```swift
+struct Chest: GView {
+  let position: Vector2
+  let loot: [Item]
+  @State var isOpen = false
+
+  var body: some GView {
+    Area2D$ {
+      If($isOpen) {
+        Sprite2D$().res(\.texture, "chest_open.png")
+      }
+      .Else {
+        Sprite2D$().res(\.texture, "chest_closed.png")
+      }
+      CollisionShape2D$().shape(RectangleShape2D(w: 16, h: 16))
+    }
+    .position(position)
+    .onSignal(\.bodyEntered) { _, body in
+      guard !isOpen else { return }
+      isOpen = true
+      GameEvent.lootCollected(loot).emit()
+    }
+  }
+}
+```
+
+### Health Bar
+
+```swift
+struct HealthBar: GView {
+  let health: State<Int>
+  let maxHealth: Int
+
+  var body: some GView {
+    ProgressBar$()
+      .maxValue(Double(maxHealth))
+      .bind(\.value, to: health) { Double($0) }
+      .size(.expandFill)
+  }
+}
+```
+
+### Menu System
+
+```swift
+enum MenuPage {
+  case mainMenu
+  case levelSelect
+  case settings
+}
+
+struct MainMenu: GView {
+  @State var currentPage: MenuPage = .mainMenu
+
+  var body: some GView {
+    CanvasLayer$ {
+      VBoxContainer$ {
+        Label$().text("My Game")
+
+        Switch($currentPage) {
+          Case(.mainMenu) {
+            Button$().text("Start").onSignal(\.pressed) { _ in
+              currentPage = .levelSelect
+            }
+            Button$().text("Settings").onSignal(\.pressed) { _ in
+              currentPage = .settings
+            }
+            Button$().text("Quit").onSignal(\.pressed) { _ in
+              Engine.getSceneTree()?.quit()
+            }
+          }
+
+          Case(.levelSelect) {
+            Label$().text("Level Select")
+            Button$().text("Back").onSignal(\.pressed) { _ in
+              currentPage = .mainMenu
+            }
+          }
+
+          Case(.settings) {
+            Label$().text("Settings")
+            Button$().text("Back").onSignal(\.pressed) { _ in
+              currentPage = .mainMenu
+            }
+          }
+        }
+      }
+      .anchorsAndOffsets(.center)
+    }
+  }
+}
+```
+
+### Inventory System
+
+```swift
+struct InventoryView: GView {
+  @State var items: [Item] = []
+
+  var body: some GView {
+    VBoxContainer$ {
+      Label$().text("Inventory")
+
+      ForEach($items, id: \.rawValue) { item in
+        HBoxContainer$ {
+          TextureRect$().res(\.texture, "icon_\(item.wrappedValue.rawValue).png")
+          Label$().text(item.wrappedValue.rawValue)
+          Button$().text("Drop").onSignal(\.pressed) { _ in
+            items.removeAll { $0 == item.wrappedValue }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Timer/Countdown
+
+```swift
+struct Countdown: GView {
+  @State var timeLeft: Double = 60.0
+  @State var isRunning: Bool = true
+
+  var body: some GView {
+    Label$()
+      .bind(\.text, to: $timeLeft) { String(format: "%.1f", $0) }
+      .onProcess { _, delta in
+        if isRunning && timeLeft > 0 {
+          timeLeft -= delta
+        }
+      }
+  }
+}
 ```

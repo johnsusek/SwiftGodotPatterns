@@ -116,7 +116,7 @@ public struct LDLayerDef: Codable {
 // MARK: - Layer Instance
 
 /// An instance of a layer in a level
-public struct LDLayerInstance: Codable {
+public struct LDLayer: Codable {
   /// Unique instance identifier
   public let iid: String
 

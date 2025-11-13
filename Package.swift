@@ -27,7 +27,7 @@ let package = Package(
             dependencies: ["NodeApiGen"]
         ),
 
-        // Codegen tool that scans Swift sources for LDExported enums and writes ldtkEnums.json
+        // Codegen tool that scans Swift sources for LDExported enums and writes LDExported.json
         .executableTarget(
             name: "LDEnumGen",
             dependencies: [

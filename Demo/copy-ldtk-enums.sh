@@ -1,11 +1,11 @@
 #!/bin/bash
-# Copy generated ldtkEnums.json to Godot project directory
+# Copy generated LDExported.json to Godot project directory
 
 # Find the most recent build output
 GENERATED_JSON=$(find .build/plugins/outputs -name "LDExported.json" -type f | head -1)
 
 if [ -z "$GENERATED_JSON" ]; then
-  echo "Error: ldtkEnums.json not found. Run 'swift build' first."
+  echo "Error: LDExported.json not found. Run 'swift build' first."
   exit 1
 fi
 

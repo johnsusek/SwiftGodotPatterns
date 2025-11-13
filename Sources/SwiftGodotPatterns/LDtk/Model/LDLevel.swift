@@ -54,10 +54,10 @@ public struct LDLevel: Codable {
   public let smartColor: String
 
   /// Custom field instances for this level
-  public let fieldInstances: [LDFieldInstance]
+  public let fieldInstances: [LDField]
 
   /// Layer instances (may be null if using external levels)
-  public let layerInstances: [LDLayerInstance]?
+  public let layerInstances: [LDLayer]?
 
   /// Neighboring level info
   public let neighbours: [LDNeighbourLevel]
@@ -122,32 +122,32 @@ public struct LDLevel: Codable {
   }
 
   /// Get layer by identifier
-  public func layer(_ identifier: String) -> LDLayerInstance? {
+  public func layer(_ identifier: String) -> LDLayer? {
     layerInstances?.first(where: { $0.identifier == identifier })
   }
 
   /// Get all layers of a specific type
-  public func layers(ofType type: LDLayerType) -> [LDLayerInstance] {
+  public func layers(ofType type: LDLayerType) -> [LDLayer] {
     layerInstances?.filter { $0.type == type } ?? []
   }
 
   /// Get all entity layers
-  public var entityLayers: [LDLayerInstance] {
+  public var entityLayers: [LDLayer] {
     layers(ofType: .entities)
   }
 
   /// Get all tile layers
-  public var tileLayers: [LDLayerInstance] {
+  public var tileLayers: [LDLayer] {
     layers(ofType: .tiles)
   }
 
   /// Get all intgrid layers
-  public var intGridLayers: [LDLayerInstance] {
+  public var intGridLayers: [LDLayer] {
     layers(ofType: .intGrid)
   }
 
   /// Get all auto layers
-  public var autoLayers: [LDLayerInstance] {
+  public var autoLayers: [LDLayer] {
     layers(ofType: .autoLayer)
   }
 

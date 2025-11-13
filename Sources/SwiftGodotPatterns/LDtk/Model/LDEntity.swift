@@ -139,7 +139,7 @@ public struct LDEntity: Codable {
   public let tags: [String]
 
   /// Field values for this instance
-  public let fieldInstances: [LDFieldInstance]
+  public let fieldInstances: [LDField]
 
   /// Optional tile used to display this entity
   public let tile: LDTilesetRect?
