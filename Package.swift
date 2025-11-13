@@ -9,6 +9,7 @@ let package = Package(
     products: [
         .library(name: "SwiftGodotPatterns", type: .dynamic, targets: ["SwiftGodotPatterns"]),
         .plugin(name: "GenNodeApi", targets: ["GenNodeApi"]),
+        .plugin(name: "GenLDEnums", targets: ["GenLDEnums"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.3.0"),
@@ -24,6 +25,23 @@ let package = Package(
             name: "GenNodeApi",
             capability: .buildTool(),
             dependencies: ["NodeApiGen"]
+        ),
+
+        // Codegen tool that scans Swift sources for LDExported enums and writes ldtkEnums.json
+        .executableTarget(
+            name: "LDEnumGen",
+            dependencies: [
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftParser", package: "swift-syntax"),
+            ],
+            path: "Sources/LDEnumGen"
+        ),
+
+        // Build-tool plugin that invokes LDEnumGen every build.
+        .plugin(
+            name: "GenLDEnums",
+            capability: .buildTool(),
+            dependencies: ["LDEnumGen"]
         ),
 
         .macro(
@@ -45,7 +63,10 @@ let package = Package(
 
         .testTarget(
             name: "SwiftGodotPatternsTests",
-            dependencies: ["SwiftGodotPatterns"]
+            dependencies: ["SwiftGodotPatterns"],
+            resources: [
+                .copy("Test_file_for_API_showing_all_features.ldtk"),
+            ]
         ),
     ]
 )
