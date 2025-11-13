@@ -107,7 +107,7 @@ struct PlayerView: GView {
     CharacterBody2D$ {
       Sprite2D$()
       ProgressBar$()
-        .bind(\.value, to: $health)  // One-way binding
+        .value($health)  // One-way binding
     }
     .position($position)  // Bind to property
     .ref($playerNode)     // Capture node reference
@@ -121,7 +121,10 @@ struct PlayerView: GView {
 ## State Binding Patterns
 
 ```swift
-// One-way binding
+// One-way bind to property
+ProgressBar$().value($health)
+
+// Bind with formatter
 Label$().bind(\.text, to: $score) { "Score: \($0)" }
 
 // Bind to sub-property
@@ -258,7 +261,7 @@ struct GameView: GView {
 let scoreText = $score.computed { "Score: \($0)" }
 let isHighScore = $score.computed { $0 > 1000 }
 
-Label$().bind(\.text, to: scoreText)
+Label$().text(scoreText)
 
 If(isHighScore) {
   Label$().text("New High Score!").modulate(.yellow)
@@ -278,7 +281,7 @@ let statusText = $health.computed(with: $maxHealth, $playerName) { hp, maxHp, na
   "\(name): \(hp)/\(maxHp) HP"
 }
 
-Label$().bind(\.text, to: statusText)
+Label$().text(statusText)
 ```
 
 ## Groups & Scene Instancing
@@ -1016,6 +1019,7 @@ struct HealthBar: GView {
   var body: some GView {
     ProgressBar$()
       .maxValue(Double(maxHealth))
+      // Formatter used for type conversion
       .bind(\.value, to: health) { Double($0) }
       .size(.expandFill)
   }
