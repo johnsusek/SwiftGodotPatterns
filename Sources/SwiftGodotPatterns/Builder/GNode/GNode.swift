@@ -155,7 +155,7 @@ public extension GNode {
   /// - Returns: A closure taking the enum's `RawValue` and returning a new `GNode`.
   subscript<E>(dynamicMember kp: ReferenceWritableKeyPath<T, E>) -> (E.RawValue) -> Self where E: RawRepresentable { { raw in
     guard let e = E(rawValue: raw) else {
-      GD.print("⚠️ Invalid rawValue for \(E.self):", raw)
+      GD.printErr("⚠️ Invalid rawValue for \(E.self):", raw)
       return self
     }
 

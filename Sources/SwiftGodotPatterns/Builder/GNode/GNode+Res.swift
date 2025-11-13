@@ -12,7 +12,7 @@ import SwiftGodot
 @inline(__always)
 private func loadRes<R: Resource>(_ path: String, _: R.Type = R.self) -> R? {
   guard let r = ResourceLoader.load(path: resPath(path)) as? R else {
-    GD.print("⚠️ Failed to load \(R.self):", path)
+    GD.printErr("⚠️ Failed to load \(R.self):", path)
     return nil
   }
   return r
@@ -32,7 +32,7 @@ public extension GNode {
   func res<R: Resource>(_ kp: ReferenceWritableKeyPath<T, R>, _ path: String) -> Self {
     var s = self
     s.ops.append { n in
-      if let r: R = loadRes(path, R.self) { n[keyPath: kp] = r } else { GD.print("⚠️", R.self, "nil for", path) }
+      if let r: R = loadRes(path, R.self) { n[keyPath: kp] = r } else { GD.printErr("⚠️", R.self, "nil for", path) }
     }
     return s
   }

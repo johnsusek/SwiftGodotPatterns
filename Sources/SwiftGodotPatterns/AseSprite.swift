@@ -113,7 +113,7 @@ public class AseSprite: AnimatedSprite2D {
       let decoded = try Self.decodeAse(sourcePath, options: aseOptions, layer: layerName)
       return Self.buildFrames(decoded, options: aseOptions)
     }() else {
-      GD.print("⚠️ AseSprite build failed for", sourcePath)
+      GD.printErr("⚠️ AseSprite build failed for", sourcePath)
       return
     }
 

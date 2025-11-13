@@ -202,7 +202,7 @@ public final class Child<T: Node>: _AutoBindProp {
       var m = "⚠️ No \(T.self) found"
       if let path { m += " at '\(path)'" }
       m += " in \(host)"
-      GD.print(m)
+      GD.printErr(m)
     }
   }
 }
@@ -334,7 +334,7 @@ public final class Sibling<T: Node>: _AutoBindProp {
   public var wrappedValue: T? { node }
   func _bind(host: Node) {
     guard let parent = host.getParent() else {
-      GD.print("⚠️ No parent for \(host); cannot find sibling \(T.self)")
+      GD.printErr("⚠️ No parent for \(host); cannot find sibling \(T.self)")
       return
     }
 
@@ -354,7 +354,7 @@ public final class Sibling<T: Node>: _AutoBindProp {
     var m = "⚠️ No sibling \(T.self) found"
     if let name { m += " named '\(name)'" }
     m += " for \(host)"
-    GD.print(m)
+    GD.printErr(m)
   }
 }
 

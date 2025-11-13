@@ -37,7 +37,7 @@ public extension GNode {
       s.ops.append { node in
         state.onChange { raw in
           guard let e = E(rawValue: raw) else {
-            GD.print("⚠️ Invalid rawValue for \(E.self):", raw)
+            GD.printErr("⚠️ Invalid rawValue for \(E.self):", raw)
             return
           }
           node[keyPath: kp] = e
