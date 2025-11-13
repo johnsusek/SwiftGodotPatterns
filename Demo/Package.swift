@@ -20,6 +20,9 @@ let package = Package(
       name: "DemoApp",
       dependencies: [
         "SwiftGodotPatterns",
+      ],
+      plugins: [
+        .plugin(name: "GenLDEnums", package: "SwiftGodotPatterns"),
       ]
     ),
   ]
