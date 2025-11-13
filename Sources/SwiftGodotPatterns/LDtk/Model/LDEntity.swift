@@ -168,8 +168,6 @@ public struct LDEntity: Codable {
   }
 
   /// Get position as Vector2, adjusted for entity center
-  /// This is the most common use case - works perfectly with Godot's default centered sprites
-  /// The position represents the center of the entity's bounding box
   public var position: Vector2 {
     let pivotOffsetX = Float(pivot[0]) * Float(width)
     let pivotOffsetY = Float(pivot[1]) * Float(height)
@@ -182,13 +180,11 @@ public struct LDEntity: Codable {
   }
 
   /// Get the raw pivot position from LDtk (before any adjustments)
-  /// Use this if you need the exact pivot point position as stored in LD
   public var positionPivot: Vector2 {
     Vector2(x: Float(px[0]), y: Float(px[1]))
   }
 
   /// Get position adjusted for top-left corner
-  /// Use this for non-centered sprites or when you need the top-left corner of the entity
   public var positionTopLeft: Vector2 {
     let pivotOffsetX = Float(pivot[0]) * Float(width)
     let pivotOffsetY = Float(pivot[1]) * Float(height)
