@@ -5,7 +5,7 @@ import SwiftGodot
 public extension GNode where T: Sprite2D {
   /// Anchors a sprite within a container using pivot points (0-1 normalized coordinates).
   ///
-  /// This is useful when working with LD entities where you want to position a sprite
+  /// This is useful when working with LDtk entities where you want to position a sprite
   /// within the entity's bounding box using the same pivot system as LD.
   ///
   /// - Parameters:
