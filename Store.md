@@ -9,7 +9,7 @@ let token = store.observe { state in
   print("Score: \(state.score)")
 }
 
-store.send(.heal(10))
+store.commit(.heal(10))
 // Prints: Health: 90, Score: 100
 
 // Cancel subscription when done
@@ -50,7 +50,7 @@ healthStore.observe { health in
   print("Health changed: \(health)")
 }
 
-store.send(.takeDamage(10))
+store.commit(.takeDamage(10))
 // Prints: Health changed: 90
 ```
 
@@ -90,13 +90,13 @@ let store = Store(
 
 // In your game loop
 override func _process(delta: Double) {
-  store.send(.tick(delta: delta))
+  store.commit(.tick(delta: delta))
 }
 
 // Player input
 func handleInput() {
   if Input.isActionJustPressed("jump") {
-    store.send(.playerInput(.jump))
+    store.commit(.playerInput(.jump))
   }
 }
 ```

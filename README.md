@@ -67,6 +67,12 @@ ColorRect$().configure { rect in
 }
 ```
 
+**Capture node references:**
+
+```swift
+@State var playerNode: CharacterBody2D?
+CharacterBody2D$().ref($playerNode) // replaces: .onReady { node in playerNode = node }
+```
 ## Node Modifiers
 
 Custom modifiers available on `GNode` instances.
@@ -174,17 +180,6 @@ Layout helpers for `Control` nodes (non-container and container contexts).
 .size(.expandFill)
 ```
 
-### 💥 Collision (2D)
-
-Set collision layers and masks for `CollisionObject2D` nodes.
-
-```swift
-.collisionLayer(.alpha)
-.collisionMask([.beta, .gamma])
-```
-
-Available layers: `.alpha`, `.beta`, `.gamma`, `.delta`, `.epsilon`, `.zeta`, `.eta`, `.theta`, `.iota`, `.kappa`, `.lambda`, `.mu`, `.nu`, `.xi`, `.omicron`, `.pi`, `.rho`, `.sigma`, `.tau`, `.upsilon`, `.phi`, `.chi`, `.psi`, `.omega`
-
 ### ⚡ Process Hooks
 
 Register callbacks for node lifecycle events.
@@ -204,13 +199,6 @@ Register callbacks for node lifecycle events.
 .onPhysicsProcess { node, delta in
   // Physics updates
 }
-
-// Capture node reference
-@State var playerNode: CharacterBody2D?
-
-CharacterBody2D$()
-  .ref($playerNode)
-// replaces: .onReady { node in playerNode = node }
 ```
 
 ## 📦 State Management
@@ -239,27 +227,15 @@ Bind `GState` to node properties for reactive updates.
 // Binding with transformation
 .bind(\.text, to: $score) { "Score: \($0)" }
 
+// Multi-State Bindings
+.bind(\.text, to: $first, $second) { "\($0) - \($1)" }
+
 // Binding to sub-property
 .bind(\.x, to: $position, \.x)
 
 // Custom update logic
 .watch($health) { node, health in
     node.modulate = health < 20 ? .red : .white
-}
-```
-
-**Multi-State Bindings:**
-
-```swift
-// Combine two states
-.bind(\.text, to: $first, $second) { "\($0) - \($1)" }
-
-// Combine three states
-.bind(\.text, to: $a, $b, $c) { "\($0), \($1), \($2)" }
-
-// Combine four states
-.bind(\.text, to: $a, $b, $c, $d) { a, b, c, d in
-    // Complex transformation
 }
 ```
 
@@ -316,7 +292,7 @@ ForEach($items) { item in
   ItemRow(item: item)
 }
 
-// Modes: .standard (default) or .deferred (batches updates)
+// Modes: .standard (default) or .deferred (batches updates to next frame)
 ForEach($items, mode: .deferred) { item in
   // ...
 }
@@ -341,17 +317,12 @@ VBoxContainer$ {
 }
 ```
 
-**If Modes:**
+**Modes:**
 
 ```swift
-// .hide (default) - Toggles visible property (fast)
-If($condition) { /* ... */ }
-
-// .remove - Uses addChild/removeChild (cleaner tree)
-If($condition) { /* ... */ }.mode(.remove)
-
-// .destroy - Uses queueFree/rebuild (frees memory)
-If($condition) { /* ... */ }.mode(.destroy)
+If($condition) { /* ... */ }                // .hide (default) - Toggles visible property (fast)
+If($condition) { /* ... */ }.mode(.remove)  // .remove - Uses addChild/removeChild (slow, cleaner tree)
+If($condition) { /* ... */ }.mode(.destroy) // .destroy - Uses queueFree/rebuild (slowest, frees memory)
 ```
 
 ### 🎨 Theme Building
@@ -436,16 +407,16 @@ struct GameState {
 
 // Define events that can change state
 enum GameEvent {
-  case takeDamage(Int)
-  case addScore(Int)
+  case tookDamage(Int)
+  case scoreAdded(Int)
 }
 
 // Create a pure reducer function
 func gameReducer(state: inout GameState, event: GameEvent) {
   switch event {
-  case .takeDamage(let amount):
+  case .tookDamage(let amount):
     state.playerHealth = max(0, state.playerHealth - amount)
-  case .addScore(let points):
+  case .scoreAdded(let points):
     state.score += points
   }
 }
@@ -457,8 +428,8 @@ let store = Store(
 )
 
 // Send events to update state
-store.send(.takeDamage(20))
-store.send(.addScore(100))
+store.commit(.tookDamage(20))
+store.commit(.scoreAdded(100))
 
 // Read current state
 print(store.state.playerHealth) // 80
@@ -491,7 +462,7 @@ Actions {
     Key(.escape)
   }
 }
-.install(clearExisting: true)
+.install()
 ```
 
 ### 🕹️ Analog Axes

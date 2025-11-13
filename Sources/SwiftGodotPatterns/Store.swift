@@ -30,7 +30,7 @@ import Foundation
 ///   }
 /// )
 ///
-/// store.send(.increment)
+/// store.commit(.increment)
 /// print(store.state.count) // 1
 /// ```
 ///
@@ -42,7 +42,7 @@ import Foundation
 /// let token = store.observe { state in
 ///   print("Count is now: \(state.count)")
 /// }
-/// store.send(.increment)
+/// store.commit(.increment)
 /// // Prints: "Count is now: 1"
 /// store.cancel(token)
 /// ```
@@ -69,7 +69,7 @@ public final class Store<State, Event>: @unchecked Sendable {
   /// The current state of the store.
   ///
   /// This property is read-only from outside the store. To modify state,
-  /// send events through `send(_:)`.
+  /// send events through `commit(_:)`.
   public private(set) var state: State
 
   /// The reducer function that transforms state based on events.
@@ -107,7 +107,7 @@ public final class Store<State, Event>: @unchecked Sendable {
   /// observers are notified if the state changed.
   ///
   /// - Parameter event: The event to process.
-  public func send(_ event: Event) {
+  public func commit(_ event: Event) {
     // Run middleware (outside lock since they may dispatch)
     let currentState: State
     lock.lock()
@@ -116,7 +116,7 @@ public final class Store<State, Event>: @unchecked Sendable {
 
     for mw in middleware {
       mw.handle(event: event, state: currentState, dispatch: { [weak self] in
-        self?.send($0)
+        self?.commit($0)
       })
     }
 
@@ -136,7 +136,7 @@ public final class Store<State, Event>: @unchecked Sendable {
   /// Registers an observer that will be called whenever the state changes.
   ///
   /// The observer is called immediately with the current state, and then
-  /// whenever `send(_:)` causes a state change.
+  /// whenever `commit(_:)` causes a state change.
   ///
   /// - Parameter handler: A closure that receives the new state.
   /// - Returns: A token that can be used to cancel the observation.
@@ -165,7 +165,7 @@ public final class Store<State, Event>: @unchecked Sendable {
 
 /// A middleware function that can intercept events and perform side effects.
 ///
-/// Middleware sits between the `send(_:)` call and the reducer, allowing you to:
+/// Middleware sits between the `commit(_:)` call and the reducer, allowing you to:
 /// - Log events for debugging
 /// - Trigger analytics
 /// - Perform async operations

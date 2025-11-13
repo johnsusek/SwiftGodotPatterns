@@ -22,7 +22,7 @@ struct StoreTests {
       state.count += 1
     case .decrement:
       state.count -= 1
-    case .add(let value):
+    case let .add(value):
       state.count += value
     case .reset:
       state.count = 0
@@ -47,19 +47,19 @@ struct StoreTests {
       reducer: counterReducer
     )
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(store.state.count == 1)
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(store.state.count == 2)
 
-    store.send(.decrement)
+    store.commit(.decrement)
     #expect(store.state.count == 1)
 
-    store.send(.add(10))
+    store.commit(.add(10))
     #expect(store.state.count == 11)
 
-    store.send(.reset)
+    store.commit(.reset)
     #expect(store.state.count == 0)
   }
 
@@ -79,11 +79,11 @@ struct StoreTests {
     #expect(observedStates.count == 1)
     #expect(observedStates[0].count == 0)
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(observedStates.count == 2)
     #expect(observedStates[1].count == 1)
 
-    store.send(.add(5))
+    store.commit(.add(5))
     #expect(observedStates.count == 3)
     #expect(observedStates[2].count == 6)
 
@@ -104,12 +104,12 @@ struct StoreTests {
 
     #expect(count == 1) // Initial call
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(count == 2)
 
     store.cancel(token)
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(count == 2, "Count should not increase after cancellation")
   }
 
@@ -129,12 +129,12 @@ struct StoreTests {
     #expect(count1 == 1)
     #expect(count2 == 1)
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(count1 == 2)
     #expect(count2 == 2)
 
     store.cancel(token1)
-    store.send(.increment)
+    store.commit(.increment)
 
     #expect(count1 == 2, "First observer should not receive updates")
     #expect(count2 == 3, "Second observer should still receive updates")
@@ -148,7 +148,7 @@ struct StoreTests {
   func testMiddleware() {
     var interceptedEvents: [CounterEvent] = []
 
-    let middleware = Middleware<CounterState, CounterEvent> { event, state, _ in
+    let middleware = Middleware<CounterState, CounterEvent> { event, _, _ in
       interceptedEvents.append(event)
     }
 
@@ -158,9 +158,9 @@ struct StoreTests {
       middleware: [middleware]
     )
 
-    store.send(.increment)
-    store.send(.decrement)
-    store.send(.add(5))
+    store.commit(.increment)
+    store.commit(.decrement)
+    store.commit(.add(5))
 
     #expect(interceptedEvents.count == 3)
   }
@@ -168,7 +168,7 @@ struct StoreTests {
   @Test("Middleware can dispatch additional events")
   func testMiddlewareDispatch() {
     // Middleware that doubles increment events
-    let doubler = Middleware<CounterState, CounterEvent> { event, state, dispatch in
+    let doubler = Middleware<CounterState, CounterEvent> { event, _, dispatch in
       if case .increment = event {
         dispatch(.increment) // Dispatch a second increment
       }
@@ -180,7 +180,7 @@ struct StoreTests {
       middleware: [doubler]
     )
 
-    store.send(.increment)
+    store.commit(.increment)
     // Should be 2 because middleware dispatched an additional increment
     #expect(store.state.count == 2)
   }
@@ -207,7 +207,7 @@ struct StoreTests {
       middleware: [mw1, mw2, mw3]
     )
 
-    store.send(.increment)
+    store.commit(.increment)
 
     #expect(log == ["mw1", "mw2", "mw3"])
   }
@@ -234,8 +234,8 @@ struct StoreTests {
       middleware: [.logging(name: "Counter")]
     )
 
-    store.send(.increment)
-    store.send(.decrement)
+    store.commit(.increment)
+    store.commit(.decrement)
 
     #expect(capturedMessages.count >= 2)
     #expect(capturedMessages[0].contains("Counter"))
@@ -262,8 +262,8 @@ struct StoreTests {
       middleware: [busMiddleware]
     )
 
-    store.send(.increment)
-    store.send(.add(5))
+    store.commit(.increment)
+    store.commit(.add(5))
 
     #expect(busEvents.count == 2)
 
@@ -290,7 +290,7 @@ struct StoreTests {
         switch event {
         case .incrementCounter:
           state.counter += 1
-        case .setName(let name):
+        case let .setName(name):
           state.name = name
         }
       }
@@ -301,13 +301,13 @@ struct StoreTests {
 
     #expect(derivedStore.state == 0)
 
-    store.send(.incrementCounter)
+    store.commit(.incrementCounter)
     #expect(derivedStore.state == 1)
 
-    store.send(.setName("New"))
+    store.commit(.setName("New"))
     #expect(derivedStore.state == 1) // Unchanged
 
-    store.send(.incrementCounter)
+    store.commit(.incrementCounter)
     #expect(derivedStore.state == 2)
 
     store.cancel(token)
@@ -342,10 +342,10 @@ struct StoreTests {
 
     #expect(observedValues == [0])
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(observedValues == [0, 2])
 
-    store.send(.increment)
+    store.commit(.increment)
     #expect(observedValues == [0, 2, 4])
 
     derived.cancel(observerToken)
@@ -387,13 +387,13 @@ struct StoreTests {
     #expect(countBinding.wrappedValue == 10)
 
     // Should update when store changes
-    store.send(.increment)
+    store.commit(.increment)
     #expect(countBinding.wrappedValue == 11)
 
-    store.send(.add(5))
+    store.commit(.add(5))
     #expect(countBinding.wrappedValue == 16)
 
-    store.send(.reset)
+    store.commit(.reset)
     #expect(countBinding.wrappedValue == 0)
   }
 
@@ -416,10 +416,10 @@ struct StoreTests {
     #expect(observedValues == [0])
 
     // Should receive updates
-    store.send(.increment)
+    store.commit(.increment)
     #expect(observedValues == [0, 1])
 
-    store.send(.add(10))
+    store.commit(.add(10))
     #expect(observedValues == [0, 1, 11])
   }
 
@@ -443,11 +443,11 @@ struct StoreTests {
       initialState: GameState(),
       reducer: { (state: inout GameState, event: GameEvent) in
         switch event {
-        case .playerAttack(let damage):
+        case let .playerAttack(damage):
           state.enemyHealth = max(0, state.enemyHealth - damage)
-        case .enemyAttack(let damage):
+        case let .enemyAttack(damage):
           state.playerHealth = max(0, state.playerHealth - damage)
-        case .heal(let amount):
+        case let .heal(amount):
           state.playerHealth = min(100, state.playerHealth + amount)
         case .tick:
           state.frame += 1
@@ -456,23 +456,23 @@ struct StoreTests {
     )
 
     // Simulate game loop
-    store.send(.tick)
+    store.commit(.tick)
     #expect(store.state.frame == 1)
 
     // Player input
-    store.send(.playerAttack(damage: 20))
+    store.commit(.playerAttack(damage: 20))
     #expect(store.state.enemyHealth == 80)
 
     // AI action
-    store.send(.enemyAttack(damage: 15))
+    store.commit(.enemyAttack(damage: 15))
     #expect(store.state.playerHealth == 85)
 
     // Network event (player heals)
-    store.send(.heal(amount: 10))
+    store.commit(.heal(amount: 10))
     #expect(store.state.playerHealth == 95)
 
     // Continue game loop
-    store.send(.tick)
+    store.commit(.tick)
     #expect(store.state.frame == 2)
   }
 }
