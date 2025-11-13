@@ -3,7 +3,7 @@ import SwiftGodot
 
 // MARK: - Level Build Configuration
 
-/// Configuration options for building LD levels
+/// Configuration options for building LDtk levels
 public struct LDLevelBuildConfig {
   /// IntGrid values that should create collision (nil = all non-zero)
   public var collisionValues: [Int]?
@@ -26,9 +26,9 @@ public struct LDLevelBuildConfig {
 
 // MARK: - Level Builder
 
-/// Builds complete Godot node hierarchies from LD levels
+/// Builds complete Godot node hierarchies from LDtk levels
 public class LDLevelBuilder {
-  /// The LD project
+  /// The LDtk project
   private let project: LDProject
 
   /// TileSet builder for creating tilesets
@@ -85,7 +85,7 @@ public class LDLevelBuilder {
 
   /// Build a level from a level instance
   /// - Parameters:
-  ///   - level: The LD level instance
+  ///   - level: The LDtk level instance
   ///   - config: Build configuration
   ///   - useCache: Whether to cache the result
   /// - Returns: Node2D containing the complete level
@@ -117,7 +117,7 @@ public class LDLevelBuilder {
       levelNode.addChild(node: backgroundLayer)
     }
 
-    // Get layer instances (in reverse order - LD layers are top-to-bottom, we want bottom-to-top for z-index)
+    // Get layer instances (in reverse order - LDtk layers are top-to-bottom, we want bottom-to-top for z-index)
     guard let layerInstances = level.layerInstances else {
       GD.printErr("Level '\(level.identifier)' has no layer instances")
       return nil

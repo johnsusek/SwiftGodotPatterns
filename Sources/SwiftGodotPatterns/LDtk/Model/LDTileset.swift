@@ -3,7 +3,7 @@ import SwiftGodot
 
 // MARK: - Tileset Definition
 
-/// Definition of a tileset in the LD project
+/// Definition of a tileset in the LDtk project
 public struct LDTilesetDef: Codable {
   /// Unique identifier
   public let uid: Int
@@ -60,7 +60,7 @@ public struct LDTilesetDef: Codable {
   public func resourcePath(relativeTo projectPath: String) -> String {
     guard let relPath = relPath else { return "" }
 
-    // LD uses relative paths like "../atlas/tileset.png" or "atlas/tileset.png"
+    // LDtk uses relative paths like "../atlas/tileset.png" or "atlas/tileset.png"
     // We need to resolve these relative to the project file
 
     // Remove "res://" prefix if present in projectPath

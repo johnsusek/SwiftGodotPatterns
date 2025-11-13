@@ -3,9 +3,9 @@ import SwiftGodot
 
 // MARK: - Project
 
-/// Root structure of an LD project JSON file
+/// Root structure of an LDtk project JSON file
 public struct LDProject: Codable {
-  /// LD version used to create this file
+  /// LDtk version used to create this file
   public let jsonVersion: String
 
   /// Unique project identifier
@@ -217,7 +217,7 @@ public struct LDProject: Codable {
 // MARK: - Loading
 
 public extension LDProject {
-  /// Load an LD project from a JSON file path
+  /// Load an LDtk project from a JSON file path
   /// - Parameter path: Absolute or resource path to the .ldtk file
   /// - Returns: Loaded project with projectPath set
   /// - Throws: Decoding errors or file errors
@@ -243,7 +243,7 @@ public extension LDProject {
     return project
   }
 
-  /// Load an LD project from a resource path (res://)
+  /// Load an LDtk project from a resource path (res://)
   /// - Parameter resourcePath: Resource path like "res://levels/game.ldtk"
   /// - Returns: Loaded project with projectPath set
   /// - Throws: Decoding errors or file errors
@@ -254,7 +254,7 @@ public extension LDProject {
 
 // MARK: - Errors
 
-/// Errors that can occur when loading LD files
+/// Errors that can occur when loading LDtk files
 public enum LDError: Error, CustomStringConvertible {
   case fileNotFound(String)
   case invalidJSON
@@ -267,7 +267,7 @@ public enum LDError: Error, CustomStringConvertible {
     case let .fileNotFound(path):
       return "LD file not found: \(path)"
     case .invalidJSON:
-      return "Invalid JSON in LD file"
+      return "Invalid JSON in LDtk file"
     case let .externalLevelNotFound(path):
       return "External level file not found: \(path)"
     case let .tilesetNotFound(path):

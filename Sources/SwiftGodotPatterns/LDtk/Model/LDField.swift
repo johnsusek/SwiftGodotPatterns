@@ -3,7 +3,7 @@ import SwiftGodot
 
 // MARK: - Field Value
 
-/// Represents a value from an LD field instance
+/// Represents a value from an LDtk field instance
 /// Fields can be various types: Int, Float, String, Bool, Color, Point, EntityRef, Tile, etc.
 public enum LDFieldValue: Codable {
   case null

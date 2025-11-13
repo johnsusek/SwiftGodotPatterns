@@ -3,12 +3,12 @@ import SwiftGodot
 
 // MARK: - TileSet Builder
 
-/// Builds Godot TileSet resources from LD tileset definitions
+/// Builds Godot TileSet resources from LDtk tileset definitions
 public class LDTileSetBuilder {
   /// Cache of built tilesets by UID
   private var tilesetCache: [Int: TileSet] = [:]
 
-  /// Path to the LD project file (for resolving relative paths)
+  /// Path to the LDtk project file (for resolving relative paths)
   private let projectPath: String
 
   /// Whether to cache tilesets
@@ -18,9 +18,9 @@ public class LDTileSetBuilder {
     self.projectPath = projectPath
   }
 
-  /// Build a TileSet from an LD tileset definition
+  /// Build a TileSet from an LDtk tileset definition
   /// - Parameters:
-  ///   - tilesetDef: The LD tileset definition
+  ///   - tilesetDef: The LDtk tileset definition
   ///   - useCache: Whether to use cached tileset if available
   /// - Returns: Configured TileSet resource
   public func buildTileSet(from tilesetDef: LDTilesetDef, useCache: Bool = true) -> TileSet? {
@@ -78,7 +78,7 @@ public class LDTileSetBuilder {
     atlasSource.separation = Vector2i(x: Int32(tilesetDef.spacing), y: Int32(tilesetDef.spacing))
 
     // Create tiles for the atlas
-    // LD uses a continuous tile ID system, we need to create tiles for all valid positions
+    // LDtk uses a continuous tile ID system, we need to create tiles for all valid positions
     let tilesWide = tilesetDef.cWid
     let tilesHigh = tilesetDef.cHei
 
@@ -124,9 +124,9 @@ public class LDTileSetBuilder {
 // MARK: - Tile Coordinate Conversion
 
 public extension LDTileSetBuilder {
-  /// Convert LD tile ID to atlas coordinates
+  /// Convert LDtk tile ID to atlas coordinates
   /// - Parameters:
-  ///   - tileId: The LD tile ID
+  ///   - tileId: The LDtk tile ID
   ///   - tilesWide: Number of tiles horizontally in the tileset
   /// - Returns: Atlas coordinates as Vector2i
   static func tileIdToAtlasCoords(tileId: Int, tilesWide: Int) -> Vector2i {

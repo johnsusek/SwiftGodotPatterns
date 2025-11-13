@@ -3,7 +3,7 @@ import SwiftGodot
 
 // MARK: - Level
 
-/// A level in the LD project
+/// A level in the LDtk project
 public struct LDLevel: Codable {
   /// Unique identifier
   public let uid: Int

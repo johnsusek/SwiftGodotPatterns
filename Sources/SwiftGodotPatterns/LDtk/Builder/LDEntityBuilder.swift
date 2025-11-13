@@ -25,7 +25,7 @@ public struct LDEntityBuildConfig {
 
 // MARK: - Entity Builder
 
-/// Builds Godot nodes from LD entity instances
+/// Builds Godot nodes from LDtk entity instances
 public class LDEntityBuilder {
   /// Reference to the project for definitions
   private let project: LDProject

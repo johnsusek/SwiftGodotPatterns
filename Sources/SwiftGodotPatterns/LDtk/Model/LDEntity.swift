@@ -3,7 +3,7 @@ import SwiftGodot
 
 // MARK: - Entity Definition
 
-/// Definition of an entity type in the LD project
+/// Definition of an entity type in the LDtk project
 public struct LDEntityDef: Codable {
   /// Unique identifier
   public let uid: Int
@@ -181,7 +181,7 @@ public struct LDEntity: Codable {
     )
   }
 
-  /// Get the raw pivot position from LD (before any adjustments)
+  /// Get the raw pivot position from LDtk (before any adjustments)
   /// Use this if you need the exact pivot point position as stored in LD
   public var positionPivot: Vector2 {
     Vector2(x: Float(px[0]), y: Float(px[1]))

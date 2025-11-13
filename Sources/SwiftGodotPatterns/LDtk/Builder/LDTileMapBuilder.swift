@@ -3,7 +3,7 @@ import SwiftGodot
 
 // MARK: - TileMap Builder
 
-/// Builds Godot TileMapLayer nodes from LD layer instances
+/// Builds Godot TileMapLayer nodes from LDtk layer instances
 public class LDTileMapBuilder {
   /// Reference to tileset builder for creating tilesets
   private let tilesetBuilder: LDTileSetBuilder
@@ -16,9 +16,9 @@ public class LDTileMapBuilder {
     self.tilesetBuilder = tilesetBuilder
   }
 
-  /// Build a TileMapLayer from an LD layer instance
+  /// Build a TileMapLayer from an LDtk layer instance
   /// - Parameters:
-  ///   - layer: The LD layer instance
+  ///   - layer: The LDtk layer instance
   ///   - zIndex: Optional z-index for the layer (defaults to 0)
   /// - Returns: Configured Node2D (TileMapLayer or container with multiple TileMapLayers), or nil if not a tile layer
   public func buildTileMapLayer(from layer: LDLayerInstance, zIndex: Int32 = 0) -> Node2D? {
@@ -142,7 +142,7 @@ public class LDTileMapBuilder {
     let tileCoordsY = tile.px[1] / layerGridSize
     let tileCoords = Vector2i(x: Int32(tileCoordsX), y: Int32(tileCoordsY))
 
-    // Convert LD tile ID to atlas coordinates
+    // Convert LDtk tile ID to atlas coordinates
     let atlasCoords = LDTileSetBuilder.tileIdToAtlasCoords(
       tileId: tile.t,
       tilesWide: tilesetDef.cWid
