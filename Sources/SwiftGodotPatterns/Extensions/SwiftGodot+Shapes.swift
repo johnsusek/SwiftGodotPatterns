@@ -8,6 +8,11 @@ public extension RectangleShape2D {
     size = Vector2(x: w, y: h)
   }
 
+  convenience init(w: Int, h: Int) {
+    self.init()
+    size = Vector2(x: Float(w), y: Float(h))
+  }
+
   convenience init(size: Vector2) {
     self.init()
     self.size = size
@@ -19,6 +24,11 @@ public extension CircleShape2D {
     self.init()
     self.radius = radius
   }
+
+  convenience init(radius: Int) {
+    self.init()
+    self.radius = Double(radius)
+  }
 }
 
 public extension CapsuleShape2D {
@@ -26,6 +36,12 @@ public extension CapsuleShape2D {
     self.init()
     self.radius = radius
     self.height = height
+  }
+
+  convenience init(radius: Int, height: Int) {
+    self.init()
+    self.radius = Double(radius)
+    self.height = Double(height)
   }
 }
 
@@ -41,6 +57,11 @@ public extension SeparationRayShape2D {
   convenience init(length: Double) {
     self.init()
     self.length = length
+  }
+
+  convenience init(length: Int) {
+    self.init()
+    self.length = Double(length)
   }
 }
 
@@ -78,12 +99,22 @@ public extension BoxShape3D {
     self.init()
     self.size = Vector3(x: x, y: y, z: z)
   }
+
+  convenience init(x: Int, y: Int, z: Int) {
+    self.init()
+    self.size = Vector3(x: Float(x), y: Float(y), z: Float(z))
+  }
 }
 
 public extension SphereShape3D {
   convenience init(radius: Double) {
     self.init()
     self.radius = radius
+  }
+
+  convenience init(radius: Int) {
+    self.init()
+    self.radius = Double(radius)
   }
 }
 
@@ -93,6 +124,12 @@ public extension CapsuleShape3D {
     self.radius = radius
     self.height = height
   }
+
+  convenience init(radius: Int, height: Int) {
+    self.init()
+    self.radius = Double(radius)
+    self.height = Double(height)
+  }
 }
 
 public extension CylinderShape3D {
@@ -101,12 +138,23 @@ public extension CylinderShape3D {
     self.radius = radius
     self.height = height
   }
+
+  convenience init(radius: Int, height: Int) {
+    self.init()
+    self.radius = Double(radius)
+    self.height = Double(height)
+  }
 }
 
 public extension SeparationRayShape3D {
   convenience init(length: Double) {
     self.init()
     self.length = length
+  }
+
+  convenience init(length: Int) {
+    self.init()
+    self.length = Double(length)
   }
 }
 
