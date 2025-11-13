@@ -165,4 +165,17 @@ public extension GNode where T: Control {
   /// ```
   @inlinable
   func size(_ s: Control.SizeFlags) -> Self { sizeH(s).sizeV(s) }
+
+  /// Alias for `customMinimumSize` - sets the minimum size of the control.
+  ///
+  /// ```swift
+  /// Label$()
+  ///   .text("Hello")
+  ///   .minSize([100, 50])
+  /// ```
+  func minSize(_ size: Vector2) -> Self {
+    var s = self
+    s.ops.append { $0.customMinimumSize = size }
+    return s
+  }
 }
