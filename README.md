@@ -810,9 +810,91 @@ ConcavePolygonShape2D(segments: mySegments)
 
 ## Components
 
+### 🗺️ LDLevelView
+
+Declaratively loads [LDtk](https://ldtk.io) levels - builds tile layers, collision shapes from IntGrid, and spawns entities.
+
+LDExported enums let you work with typed data from LDtk. JSON is generated each build that syncs with the LDtk editor.
+
+```swift
+enum Item: String, LDExported {
+  case knife = "Knife"
+  case boots = "Boots"
+}
+
+struct GameView: GView {
+  let project: LDProject
+
+  @State var inventory: [Item] = []
+
+  var body: some GView {
+    Node2D$ {
+      LDLevelView(project, level: "Level_0")
+        .onSpawn("Player") { entity, level, project in
+          let wallLayer = project.collisionLayer(for: "walls", in: level)
+
+          CharacterBody2D$ {
+            Sprite2D$()
+              .res(\.texture, "player.png")
+              .anchor([16, 22], within: entity.size, pivot: entity.pivotVector)
+            CollisionShape2D$()
+              .shape(RectangleShape2D(w: 16, h: 22))
+          }
+          .position(entity.position)
+          .collisionMask(wallLayer)
+        }
+        .onSpawn("Chest") { entity, _, _ in
+          let loot: [Item] = entity.field("loot")?.asEnumArray() ?? []
+
+          Area2D$ {
+            Sprite2D$().res(\.texture, "chest.png")
+          }
+          .position(entity.position)
+          .onSignal(\.bodyEntered) { _, body in
+            inventory.append(contentsOf: loot)
+          }
+        }
+        .onSpawned { node, entity in
+          // Post-process - add debugging labels to all entities
+          node.addChild(node: Label$().text(entity.identifier).toNode())
+        }
+    }
+  }
+}
+
+let project = LDProject.load("res://game.ldtk")
+GameView(project: project)
+```
+
+**Field Accessors:**
+
+All LDtk types are supported.
+
+```swift
+entity.field("health")?.asInt() -> Int?
+entity.field("distance")?.asFloat() -> Double?
+entity.field("is_locked")?.asBool() -> Bool?
+entity.field("name")?.asString() -> String?
+entity.field("tint")?.asColor() -> Color?
+entity.field("destination")?.asPoint() -> LDPoint?
+entity.field("destination")?.asVector2(gridSize: 16) -> Vector2?
+entity.field("target")?.asEntityRef() -> LDEntityRef?
+entity.field("items")?.asEnum<MyItemEnum>() -> MyItemEnum?
+
+entity.field("scores")?.asIntArray() -> [Int]?
+entity.field("distances")?.asFloatArray() -> [Double]?
+entity.field("flags")?.asBoolArray() -> [Bool]?
+entity.field("names")?.asStringArray() -> [String]?
+entity.field("path")?.asPointArray() -> [LDPoint]?
+entity.field("path")?.asVector2Array(gridSize: 16) -> [Vector2]?
+entity.field("palette")?.asColorArray() -> [Color]?
+entity.field("targets")?.asEntityRefArray() -> [LDEntityRef]?
+entity.field("loot")?.asEnumArray<MyItemEnum>() -> [MyItemEnum]?
+```
+
 ### 🎨 AseSprite
 
-Loads and plays Aseprite animations directly in Godot.
+Loads and plays [Aseprite](https://www.aseprite.org) animations directly. Builds Godot SpriteFrames resources from Aseprite frame/timing data. Maps Aseprite tags to Godot animations.
 
 ```swift
 // Basic usage
@@ -827,7 +909,7 @@ let character = AseSprite(
 )
 
 // In builder pattern
-GNode<AseSprite>(path: "player", layer: "Main")
+AseSprite$(path: "player", layer: "Main")
   .configure { sprite in
     sprite.play(anim: "Walk")
   }

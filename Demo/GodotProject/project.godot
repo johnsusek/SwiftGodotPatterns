@@ -15,11 +15,16 @@ config/features=PackedStringArray("4.4")
 
 [display]
 
-window/size/viewport_width=800
-window/size/viewport_height=640
-window/size/initial_position_type=3
+window/size/viewport_width=320
+window/size/viewport_height=200
+window/size/window_width_override=2560
+window/size/window_height_override=1600
 window/stretch/mode="viewport"
 window/stretch/scale_mode="integer"
+
+[gui]
+
+theme/default_theme_scale=0.5
 
 [rendering]
 
